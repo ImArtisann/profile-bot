@@ -1,0 +1,6 @@
+services:
+  brigade:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: artisann/gamify-bot:latest

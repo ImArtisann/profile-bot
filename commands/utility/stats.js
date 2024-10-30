@@ -1,0 +1,99 @@
+import {SlashCommandBuilder} from 'discord.js';
+import {databaseActions} from "../../database/mongodb.js";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export const data = new SlashCommandBuilder()
+    .setName('stats')
+    .setDescription('Set your player stats!')
+    .addNumberOption(option =>
+        option.setName('hp')
+            .setDescription('Enter your HP value')
+            .setRequired(false)
+    )
+    .addNumberOption(option =>
+        option.setName('mana')
+            .setDescription('Enter your mana value')
+            .setRequired(false)
+    )
+    .addNumberOption(option =>
+        option.setName('mood')
+            .setDescription('Enter your Mood value')
+            .setRequired(false)
+    )
+    .addNumberOption(option =>
+        option.setName('focus')
+            .setDescription('Enter your Focus value')
+            .setRequired(false)
+    )
+    .addNumberOption(option =>
+        option.setName('motivation')
+            .setDescription('Enter your Motivation value')
+            .setRequired(false)
+    )
+    .addNumberOption(option =>
+        option.setName('level')
+            .setDescription('Enter your Level value')
+            .setRequired(false)
+
+    )
+    .addStringOption(option =>
+        option.setName('class')
+            .setDescription('Enter your class')
+            .setRequired(false)
+            .setAutocomplete(true)
+    )
+    .addStringOption(option =>
+        option.setName('chart')
+        .setDescription('Enter your chart url')
+        .setRequired(false)
+    );
+
+export async function autocomplete(interaction) {
+    const focusedValue = interaction.options.getFocused();
+    const choices = [
+        { name: 'Warrior', value: 'Warrior' },
+        { name: 'Mage', value: 'Mage' },
+        { name: 'Rogue', value: 'Rogue' },
+        { name: 'Priest', value: 'Priest' },
+        { name: 'Paladin', value: 'Paladin' },
+        { name: 'Druid', value: 'Druid' },
+        { name: 'Hunter', value: 'Hunter' },
+        { name: 'Shaman', value: 'Shaman' },
+        { name: 'Warlock', value: 'Warlock' },
+        { name: 'Monk', value: 'Monk' }
+    ];    const filtered = choices.filter(choice => choice.name.startsWith(focusedValue));
+    await interaction.respond(
+        filtered.map(choice => ({ name: choice.name, value: choice.value })),
+    );
+}
+
+export async function execute(interaction) {
+    let user = interaction.user.id;
+    let choices = interaction.options.data;
+    let data = {};
+    for (const choice of choices){
+        if(!checkValid(choice.name, choice.value)){
+            await interaction.reply({content: 'Invalid input!', ephemeral: true});
+            return;
+        }
+        data[choice.name] = choice.value;
+    }
+    await databaseActions.updateUser(user, data);
+    await interaction.reply({content: 'Stats Updated!', ephemeral: true});
+}
+
+function checkValid(name, value){
+    if (name === 'level'){
+        return value <= 100;
+    }else if(['hp','motivation','focus','mood','hp','mana'].includes(name)){
+        if(isNaN(Number(value))){
+            return false;
+        }else{
+            return value <= 10;
+        }
+    }else{
+        return typeof value === 'string';
+    }
+}
