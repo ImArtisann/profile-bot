@@ -50,6 +50,15 @@ export const data = new SlashCommandBuilder()
         .setRequired(false)
     );
 
+/**
+ * Handles the autocomplete functionality for the 'class' option in the '/stats' command.
+ *
+ * When the user starts typing in the 'class' option, this function will be called to provide a list of
+ * available class options that match the user's input.
+ *
+ * @param {import('discord.js').AutocompleteInteraction} interaction - The autocomplete interaction object.
+ * @returns {Promise<void>} - A Promise that resolves when the autocomplete options have been sent.
+ */
 export async function autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused();
     const choices = [
@@ -79,11 +88,19 @@ export async function execute(interaction) {
             return;
         }
         data[choice.name] = choice.value;
+        data["timestamp"] = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
     }
     await databaseActions.updateUser(user, data);
     await interaction.reply({content: 'Stats Updated!', ephemeral: true});
 }
 
+/**
+ * Checks the validity of the input values for various user stats.
+ *
+ * @param {string} name - The name of the user stat.
+ * @param {string|number} value - The value of the user stat.
+ * @returns {boolean} - True if the input value is valid, false otherwise.
+ */
 function checkValid(name, value){
     if (name === 'level'){
         return value <= 100;
@@ -93,6 +110,8 @@ function checkValid(name, value){
         }else{
             return value <= 10;
         }
+    }else if(name === 'chart'){
+        return (String(value).includes("datajumbo") && !(String(value).includes("edit")))
     }else{
         return typeof value === 'string';
     }
