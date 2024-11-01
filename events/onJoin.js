@@ -3,8 +3,7 @@ import {Client as client, Events} from "discord.js";
 export const name = Events.GuildMemberAdd;
 export const once = false;
 export async function execute(member) {
-    const channel = member.guild.channels.cache.find(channel => channel.name === 'spawn_point');
-    if (!channel) return;
+    const channel = member.guild.channels.cache.get('1253016548080222261');
     const embed = {
         title: '**Are you ready to Gamify your Life?**',
         description: `${member} has spawned into ⚜ • 𝐆𝐚𝐦𝐢𝐟𝐟𝐲𝐧𝐢𝐚 • ⚜
@@ -16,8 +15,5 @@ export async function execute(member) {
         color: 0x0099ff,
     };
     channel.send({embeds: [embed]});
-    const guild = member.guild;
-    const role = guild.roles.cache.find(role => role.name === 'gamiffyer');
-    if (!role) return;
-    member.roles.add(role);
+    member.roles.add('1252692250958237828');
 }
