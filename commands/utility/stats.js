@@ -1,8 +1,5 @@
 import {SlashCommandBuilder} from 'discord.js';
 import {databaseActions} from "../../database/mongodb.js";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const data = new SlashCommandBuilder()
     .setName('stats')
@@ -28,11 +25,6 @@ export const data = new SlashCommandBuilder()
             .setRequired(false)
     )
     .addNumberOption(option =>
-        option.setName('motivation')
-            .setDescription('Enter your Motivation value')
-            .setRequired(false)
-    )
-    .addNumberOption(option =>
         option.setName('level')
             .setDescription('Enter your Level value')
             .setRequired(false)
@@ -43,11 +35,6 @@ export const data = new SlashCommandBuilder()
             .setDescription('Enter your class')
             .setRequired(false)
             .setAutocomplete(true)
-    )
-    .addStringOption(option =>
-        option.setName('chart')
-        .setDescription('Enter your chart url')
-        .setRequired(false)
     );
 
 /**
@@ -104,14 +91,12 @@ export async function execute(interaction) {
 function checkValid(name, value){
     if (name === 'level'){
         return value <= 100;
-    }else if(['hp','motivation','focus','mood','hp','mana'].includes(name)){
+    }else if(['hp','focus','mood','mana'].includes(name)){
         if(isNaN(Number(value))){
             return false;
         }else{
             return value <= 10;
         }
-    }else if(name === 'chart'){
-        return (String(value).includes("datajumbo") && !(String(value).includes("edit")))
     }else{
         return typeof value === 'string';
     }
