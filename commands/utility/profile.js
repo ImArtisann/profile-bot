@@ -93,7 +93,7 @@ async function createImage(user, data, member) {
         context.font = variables.nameFont;
         context.fillStyle = variables.nameColor;
         name = name.charAt(0).toUpperCase() + name.slice(1);
-        context.fillText(name, 360, 280);
+        context.fillText(name, 360, 270);
     }
 
     /**
@@ -268,10 +268,10 @@ async function createImage(user, data, member) {
     const addCharacterInfo = () => {
         context.font = variables.levelFont;
         context.fillStyle = variables.levelColor;
-        context.fillText((String(data?.class) || "Not Set"), 156, 523);
+        context.fillText(((data?.class?.toString()) || "Not Set"), 156, 557);
         context.font = variables.levelFont;
         context.fillStyle = variables.levelColor;
-        context.fillText((String(data?.level) || String(1)), 156, 557);
+        context.fillText((data?.level?.toString() || "???"), 156, 523);
     }
 
     /**
@@ -297,6 +297,5 @@ async function createImage(user, data, member) {
     drawManaBar();
     addTimeStamp();
     const buffer = await canvas.toBuffer('image/png');
-
     return new AttachmentBuilder(buffer, {name: 'profile.png'});
 }
