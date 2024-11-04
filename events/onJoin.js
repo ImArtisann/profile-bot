@@ -18,7 +18,9 @@ export async function execute(member) {
     const embed = {
         title: '**Are you ready to Gamify your Life?**',
         description: `${member} has spawned into :fleur_de_lis: • 𝐆𝐚𝐦𝐢𝐟𝐟𝐲𝐧𝐢𝐚 • :fleur_de_lis:
+        
         *Please check out these channels to get started!*
+        
         <#1252425598240952331>
         <#1252286880859295811>
         <#1252286791940046898>
