@@ -61,7 +61,7 @@ const variables = {
 }
 
 
-async function createImage(user, data, member) {
+export async function createImage(user, data, member) {
     GlobalFonts.registerFromPath('images/fonts/Rustic-Printed-Regular.ttf', 'Rustic');
     GlobalFonts.registerFromPath('images/fonts/Artegra-sans-extrabold.otf', 'Artegra');
     const canvas = Canvas.createCanvas(1050, 600);
@@ -89,7 +89,7 @@ async function createImage(user, data, member) {
      * object to determine the font style and color to use for the text.
      */
     const createNameText = () => {
-        let name = member.nickname || member.user.username;
+        let name = member.nickname || member.user.displayName;
         context.font = variables.nameFont;
         context.fillStyle = variables.nameColor;
         name = name.charAt(0).toUpperCase() + name.slice(1);
