@@ -1,6 +1,7 @@
 import { REST, Routes } from 'discord.js';
 import fs from 'node:fs';
-import path from 'node:path';import 'dotenv/config';
+import path from 'node:path';
+import 'dotenv/config';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname } from 'path';
 
