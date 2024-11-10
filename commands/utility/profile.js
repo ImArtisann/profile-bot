@@ -1,5 +1,5 @@
 import {AttachmentBuilder, SlashCommandBuilder} from 'discord.js';
-// import {databaseActions} from "../../database/mongodb.js";
+import {databaseActions} from "../../database/mongodb.js";
 import path from "node:path";
 import Canvas, {GlobalFonts, loadImage} from "@napi-rs/canvas";
 import {dirname} from "path";
@@ -321,25 +321,5 @@ export async function createImage(user, data, member, test = false) {
     addTimeStamp();
     await addRaidEmblems();
     const buffer = await canvas.toBuffer('image/png');
-    // When we are testing edits
     return test ? await fs.writeFileSync('profile.png', buffer) : new AttachmentBuilder(buffer, {name: 'profile.png'});
 }
-
-// keeping to be able to add back for testing edits
-async function test (){
-    let data = {
-        class: 'Mage',
-        level: 10,
-        timestamp: '12/12/2023',
-        health: 10,
-        mood: 10,
-        focus: 10,
-        mana: 10,
-        abyssal: true,
-        wendigo: true,
-    }
-
-    await createImage('Artisann',data, null, true);
-}
-
-// await test();

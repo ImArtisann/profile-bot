@@ -22,17 +22,24 @@ export const data = new SlashCommandBuilder()
                         value: file.replace('.png', '').toLowerCase()
                     }))
             )
+    )
+    .addBooleanOption(option =>
+        option.setName('remove')
+            .setDescription('Did you mess up adding an emblem?')
+            .setRequired(false)
     );
 
 export async function execute(interaction) {
     const user = interaction.user
-    if (!interaction.member.permissions.has('ADMINISTRATOR') && !interaction.member.permissions.has('MODERATE_MEMBERS')) {
-        return interaction.reply({content: 'You do not have permission to use this command.', ephemeral: true});
+    if(interaction.member.roles.cache.has('1252396630339223613') || interaction.member.roles.cache.has('1298317864058617867')) {
+        const targetUser = interaction.options.getUser('user');
+        const raid = interaction.options.getString('raid');
+        const add = interaction.options.getBoolean('remove') ?? true;
+        await databaseActions.updateUser(targetUser.id, {
+            [raid]: add
+        })
+        await interaction.reply({content: `Added ${raid} to ${targetUser.username}`, ephemeral: true});
+    }else{
+        await interaction.reply({content: `You do not have permission to use this command`, ephemeral: true});
     }
-    const targetUser = interaction.options.getUser('user');
-    const raid = interaction.options.getString('raid');
-    await databaseActions.updateUser(targetUser.id, {
-        [raid]: true
-    })
-    await interaction.reply({content: `Added ${raid} to ${targetUser.username}`, ephemeral: true});
 }
