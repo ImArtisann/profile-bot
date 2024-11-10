@@ -1,5 +1,5 @@
 import {AttachmentBuilder, SlashCommandBuilder} from 'discord.js';
-import {databaseActions} from "../../database/mongodb.js";
+// import {databaseActions} from "../../database/mongodb.js";
 import path from "node:path";
 import Canvas, {GlobalFonts, loadImage} from "@napi-rs/canvas";
 import {dirname} from "path";
@@ -62,7 +62,7 @@ const variables = {
 }
 
 
-export async function createImage(user, data, member) {
+export async function createImage(user, data, member, test = false) {
     GlobalFonts.registerFromPath('images/fonts/Rustic-Printed-Regular.ttf', 'Rustic');
     GlobalFonts.registerFromPath('images/fonts/Artegra-sans-extrabold.otf', 'Artegra');
     const canvas = Canvas.createCanvas(1050, 600);
@@ -71,10 +71,8 @@ export async function createImage(user, data, member) {
 
     //load background image
     const background = await Canvas.loadImage(filepath);
-    const avatarUrl = user.avatarURL({extension: 'png', size: 512});
-    const avatar = await Canvas.loadImage(encodeURI(avatarUrl));
-    // When We are testing edits
-    // const avatar = await Canvas.loadImage(path.join(foldersPath, 'test-profile.png'));
+    const avatarUrl = test ? "" : user.avatarURL({extension: 'png', size: 512});
+    const avatar = test ? await Canvas.loadImage(path.join(foldersPath, 'test-profile.png')) : await Canvas.loadImage(encodeURI(avatarUrl));
     //draw avatar
     context.drawImage(background, 0, 0, canvas.width, canvas.height);
     context.save();
@@ -91,9 +89,8 @@ export async function createImage(user, data, member) {
      * object to determine the font style and color to use for the text.
      */
     const createNameText = () => {
-        let name = member.nickname || member.user.displayName;
+        let name = test ? user : (member.nickname || member.user.displayName);
         // When we are testing edits
-        // let name = user
         context.font = variables.nameFont;
         context.fillStyle = variables.nameColor;
         name = name.charAt(0).toUpperCase() + name.slice(1);
@@ -294,20 +291,23 @@ export async function createImage(user, data, member) {
     }
 
     const addRaidEmblems = async () => {
-        let raids = ['abyssal', 'wendigo'];
-        let count = 0;
+        let raids = fs.readdirSync(path.join(foldersPath, 'raids')).map(file => file.replace('.png', ''));
+        let x = 0;
+        let y = 0;
         for(let i = 0; i < raids.length; i++){
-            console.log(raids[i])
-            console.log(data[raids[i]])
             if(data[raids[i]]){
                 context.drawImage(
-                    await loadImage(`../../images/raids/${raids[i]}.png`),
-                    (975 - (count * 50)),
-                    50,
-                    45,
-                    45
+                    await loadImage(path.join(foldersPath, `raids/${raids[i]}.png`)),
+                    (945 - (x * 80)),
+                    (50 + (y * 80)),
+                    80,
+                    80
                 );
-                count++;
+                x++;
+                if(x >= 3){
+                    x = 0;
+                    y++;
+                }
             }
         }
     }
@@ -322,25 +322,24 @@ export async function createImage(user, data, member) {
     await addRaidEmblems();
     const buffer = await canvas.toBuffer('image/png');
     // When we are testing edits
-    // await fs.writeFileSync('profile.png', buffer);
-    return new AttachmentBuilder(buffer, {name: 'profile.png'});
+    return test ? await fs.writeFileSync('profile.png', buffer) : new AttachmentBuilder(buffer, {name: 'profile.png'});
 }
 
 // keeping to be able to add back for testing edits
-// async function test (){
-//     let data = {
-//         class: 'Mage',
-//         level: 10,
-//         timestamp: '12/12/2023',
-//         health: 10,
-//         mood: 10,
-//         focus: 10,
-//         mana: 10,
-//         abyssal: false,
-//         wendigo: true,
-//     }
-//
-//     await createImage('Artisann',data);
-// }
-//
+async function test (){
+    let data = {
+        class: 'Mage',
+        level: 10,
+        timestamp: '12/12/2023',
+        health: 10,
+        mood: 10,
+        focus: 10,
+        mana: 10,
+        abyssal: true,
+        wendigo: true,
+    }
+
+    await createImage('Artisann',data, null, true);
+}
+
 // await test();

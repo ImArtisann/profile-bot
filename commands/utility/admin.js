@@ -1,5 +1,6 @@
 import {SlashCommandBuilder} from "discord.js";
 import {databaseActions} from "../../database/mongodb.js";
+import fs from "node:fs";
 
 export const data = new SlashCommandBuilder()
     .setName('admin')
@@ -14,8 +15,12 @@ export const data = new SlashCommandBuilder()
             .setDescription('Raid user completed')
             .setRequired(true)
             .addChoices(
-                {name: 'Abyssal', value: 'abyssal'},
-                {name: 'Wendigo', value: 'wendigo'},
+                ...fs.readdirSync('./images/raids')
+                    .filter(file => file.endsWith('.png'))
+                    .map(file => ({
+                        name: file.replace('.png', ''),
+                        value: file.replace('.png', '').toLowerCase()
+                    }))
             )
     );
 
@@ -27,7 +32,7 @@ export async function execute(interaction) {
     const targetUser = interaction.options.getUser('user');
     const raid = interaction.options.getString('raid');
     await databaseActions.updateUser(targetUser.id, {
-        raid: true
+        [raid]: true
     })
     await interaction.reply({content: `Added ${raid} to ${targetUser.username}`, ephemeral: true});
 }
