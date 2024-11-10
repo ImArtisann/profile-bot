@@ -4,6 +4,7 @@ import path from "node:path";
 import Canvas, {GlobalFonts, loadImage} from "@napi-rs/canvas";
 import {dirname} from "path";
 import {fileURLToPath, pathToFileURL} from "url";
+import fs from "node:fs";
 
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -72,7 +73,8 @@ export async function createImage(user, data, member) {
     const background = await Canvas.loadImage(filepath);
     const avatarUrl = user.avatarURL({extension: 'png', size: 512});
     const avatar = await Canvas.loadImage(encodeURI(avatarUrl));
-
+    // When We are testing edits
+    // const avatar = await Canvas.loadImage(path.join(foldersPath, 'test-profile.png'));
     //draw avatar
     context.drawImage(background, 0, 0, canvas.width, canvas.height);
     context.save();
@@ -90,6 +92,8 @@ export async function createImage(user, data, member) {
      */
     const createNameText = () => {
         let name = member.nickname || member.user.displayName;
+        // When we are testing edits
+        // let name = user
         context.font = variables.nameFont;
         context.fillStyle = variables.nameColor;
         name = name.charAt(0).toUpperCase() + name.slice(1);
@@ -289,6 +293,25 @@ export async function createImage(user, data, member) {
         context.fillText((data?.timestamp || "Set stats to get a time stamp"), 360, 360);
     }
 
+    const addRaidEmblems = async () => {
+        let raids = ['abyssal', 'wendigo'];
+        let count = 0;
+        for(let i = 0; i < raids.length; i++){
+            console.log(raids[i])
+            console.log(data[raids[i]])
+            if(data[raids[i]]){
+                context.drawImage(
+                    await loadImage(`../../images/raids/${raids[i]}.png`),
+                    (975 - (count * 50)),
+                    50,
+                    45,
+                    45
+                );
+                count++;
+            }
+        }
+    }
+
     createNameText();
     addCharacterInfo();
     drawHealthBar();
@@ -296,6 +319,28 @@ export async function createImage(user, data, member) {
     drawFocusBar();
     drawManaBar();
     addTimeStamp();
+    await addRaidEmblems();
     const buffer = await canvas.toBuffer('image/png');
+    // When we are testing edits
+    // await fs.writeFileSync('profile.png', buffer);
     return new AttachmentBuilder(buffer, {name: 'profile.png'});
 }
+
+// keeping to be able to add back for testing edits
+// async function test (){
+//     let data = {
+//         class: 'Mage',
+//         level: 10,
+//         timestamp: '12/12/2023',
+//         health: 10,
+//         mood: 10,
+//         focus: 10,
+//         mana: 10,
+//         abyssal: false,
+//         wendigo: true,
+//     }
+//
+//     await createImage('Artisann',data);
+// }
+//
+// await test();
