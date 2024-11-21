@@ -10,33 +10,28 @@ import fs from "node:fs";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const foldersPath = path.join(__dirname, '../../images');
 
-export const data = new SlashCommandBuilder()
-    .setName('profile')
-    .setDescription('Replies with profile!')
-    .addUserOption(option =>
-        option.setName('user')
-            .setDescription('The user whose profile you want to see')
-            .setRequired(false)
-    );
+export default {
+    data: new SlashCommandBuilder()
+        .setName('profile')
+        .setDescription('Replies with profile!')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('The user whose profile you want to see')
+                .setRequired(false)
+        ),
+    async execute(interaction) {
+        const targetUser = interaction.options.getUser('user');
+        const user = targetUser ? targetUser : interaction.user;
+        const profile = await databaseActions.getUser(user.id);
+        const targetMember = interaction.options.getMember('user');
+        const member = targetMember ? targetMember : interaction.member;
 
+        const data = profile[0];
+        const image = await createImage(user, data, member);
+        await interaction.deferReply();
+        await interaction.editReply({files: [image]});
+    }
 
-/**
- * Executes the 'profile' slash command, generating and sending a profile image for the specified user.
- *
- * @param {Interaction} interaction - The Discord interaction object that triggered the command.
- * @returns {Promise<void>} - A promise that resolves when the profile image has been sent.
- */
-export async function execute(interaction) {
-    const targetUser = interaction.options.getUser('user');
-    const user = targetUser ? targetUser : interaction.user;
-    const profile = await databaseActions.getUser(user.id);
-    const targetMember = interaction.options.getMember('user');
-    const member = targetMember ? targetMember : interaction.member;
-
-    const data = profile[0];
-    const image = await createImage(user, data, member);
-    await interaction.deferReply();
-    await interaction.editReply({files: [image]});
 }
 
 const variables = {

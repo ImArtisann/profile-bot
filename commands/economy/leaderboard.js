@@ -1,13 +1,15 @@
 import {EmbedBuilder, SlashCommandBuilder} from "discord.js";
 import {databaseActions} from "../../database/mongodb.js";
 
-export const data = new SlashCommandBuilder()
-    .setName('leaderboard')
-    .setDescription('View the leaderboard')
-
-export async function execute(interaction) {
-    let leaderboard = await getLeaderboard();
-    await interaction.reply({embeds: [leaderboard], ephemeral: false});
+export default {
+    data: new SlashCommandBuilder()
+        .setName('leaderboard')
+        .setDescription('View the leaderboard')
+    ,
+    async execute(interaction) {
+        let leaderboard = await getLeaderboard();
+        await interaction.reply({embeds: [leaderboard], ephemeral: false});
+    }
 }
 
 async function getLeaderboard() {

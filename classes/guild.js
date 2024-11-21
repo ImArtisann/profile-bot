@@ -343,8 +343,6 @@ class GuildClass {
         await this.client.hset(`${guildId}:privateChannels`, channelId, JSON.stringify(data))
     }
 
-
-
 }
 
 export const guildActions = new GuildClass();

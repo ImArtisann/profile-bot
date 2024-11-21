@@ -2,24 +2,25 @@ import {SlashCommandBuilder} from "discord.js";
 
 const timers = new Map();
 
-export const data = new SlashCommandBuilder()
-    .setName('remind')
-    .setDescription('Set a reminder')
-    .addStringOption(option =>
-        option
-            .setName('reminder')
-            .setDescription('The reminder you want to set')
-            .setRequired(true)
-    )
-    .addIntegerOption(option =>
-        option
-            .setName('time')
-            .setDescription('How long you want the reminder to be in minutes')
-            .setRequired(true)
-    )
-
-export async function execute(interaction) {
-    await startTimer(interaction);
+export default {
+    data: new SlashCommandBuilder()
+        .setName('remind')
+        .setDescription('Set a reminder')
+        .addStringOption(option =>
+            option
+                .setName('reminder')
+                .setDescription('The reminder you want to set')
+                .setRequired(true)
+        )
+        .addIntegerOption(option =>
+            option
+                .setName('time')
+                .setDescription('How long you want the reminder to be in minutes')
+                .setRequired(true)
+        ),
+    async execute(interaction) {
+        await startTimer(interaction);
+    }
 }
 
 async function startTimer(interaction) {

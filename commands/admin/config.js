@@ -1,99 +1,100 @@
 import {SlashCommandBuilder, ChannelType} from "discord.js";
 import {databaseActions} from "../../database/mongodb.js";
 
-export const data = new SlashCommandBuilder()
-    .setName('config')
-    .setDescription('Configuration for how the bot interacts with the server')
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('logs')
-            .setDescription('What channel do you want the VC logs to be sent to?')
-            .addChannelOption(option =>
-                option
-                    .setName('channel')
-                    .setDescription('The channel you want the logs to be sent to')
-                    .addChannelTypes(ChannelType.GuildText)
-                    .setRequired(true))
-    )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('tracked')
-            .setDescription('add a channel you want to track for VC logs')
-            .addChannelOption(option =>
-                option
-                    .setName('channel')
-                    .setDescription('The channel you want to add to the tracked channels')
-                    .addChannelTypes(ChannelType.GuildVoice)
-                    .setRequired(true))
-    )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('rate')
-            .setDescription('What rate do you want to set the economy to?')
-            .addNumberOption(option =>
-                option
-                    .setName('rate')
-                    .setDescription('ie 1 = 1 coin per min')
-                    .setRequired(true))
-    )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('rent')
-            .setDescription('what rate do you want the room rent to be?')
-            .addNumberOption(option =>
-                option
-                    .setName('rent')
-                    .setDescription('ie 150 = 150 coins per day')
-                    .setRequired(true))
-    )
-    .addSubcommand(subcommand =>
-        subcommand
-            .setName('econ')
-            .setDescription('add or remove econ to a user')
-            .addUserOption(option =>
-                option
-                    .setName('user')
-                    .setDescription('The user you want to add econ to')
-                    .setRequired(true)
-            )
-            .addBooleanOption(option =>
-                option
-                    .setName('add')
-                    .setDescription('Do you want to add or remove econ')
-                    .setRequired(true)
-            )
-            .addNumberOption(option =>
-                option
-                    .setName('amount')
-                    .setDescription('The amount of econ you want to add or remove')
-                    .setRequired(true)
-            )
-    )
-
-export async function execute(interaction) {
-    if(interaction.member.roles.cache.has('1252396630339223613') || interaction.member.roles.cache.has('1298317864058617867') || interaction.member.id === '176215532377210880') {
-        const subcommand = interaction.options.getSubcommand();
-        switch(subcommand){
-            case 'logs':
-                await setLogs(interaction);
-                break;
-            case 'tracked':
-                await setTracked(interaction);
-                break;
-            case 'rate':
-                await setRate(interaction);
-                break;
-            case 'rent':
-                await setRent(interaction);
-                break;
-            case 'econ':
-                await econ(interaction);
-                break;
-            default:
-                break;
+export default {
+    data: new SlashCommandBuilder()
+        .setName('config')
+        .setDescription('Configuration for how the bot interacts with the server')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('logs')
+                .setDescription('What channel do you want the VC logs to be sent to?')
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription('The channel you want the logs to be sent to')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('tracked')
+                .setDescription('add a channel you want to track for VC logs')
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription('The channel you want to add to the tracked channels')
+                        .addChannelTypes(ChannelType.GuildVoice)
+                        .setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('rate')
+                .setDescription('What rate do you want to set the economy to?')
+                .addNumberOption(option =>
+                    option
+                        .setName('rate')
+                        .setDescription('ie 1 = 1 coin per min')
+                        .setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('rent')
+                .setDescription('what rate do you want the room rent to be?')
+                .addNumberOption(option =>
+                    option
+                        .setName('rent')
+                        .setDescription('ie 150 = 150 coins per day')
+                        .setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('econ')
+                .setDescription('add or remove econ to a user')
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('The user you want to add econ to')
+                        .setRequired(true)
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName('add')
+                        .setDescription('Do you want to add or remove econ')
+                        .setRequired(true)
+                )
+                .addNumberOption(option =>
+                    option
+                        .setName('amount')
+                        .setDescription('The amount of econ you want to add or remove')
+                        .setRequired(true)
+                )
+        ),
+    async execute(interaction) {
+        if (interaction.member.roles.cache.has('1252396630339223613') || interaction.member.roles.cache.has('1298317864058617867') || interaction.member.id === '176215532377210880') {
+            const subcommand = interaction.options.getSubcommand();
+            switch (subcommand) {
+                case 'logs':
+                    await setLogs(interaction);
+                    break;
+                case 'tracked':
+                    await setTracked(interaction);
+                    break;
+                case 'rate':
+                    await setRate(interaction);
+                    break;
+                case 'rent':
+                    await setRent(interaction);
+                    break;
+                case 'econ':
+                    await econ(interaction);
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            await interaction.reply({content: `You do not have permission to use this command`, ephemeral: true});
         }
-    }else{
-        await interaction.reply({content: `You do not have permission to use this command`, ephemeral: true});
     }
 }
 
