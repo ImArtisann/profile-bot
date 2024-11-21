@@ -11,8 +11,8 @@ class GuildClass {
             ticketChannelId: "",
             configChannelId: "",
             trackedChannelsIds: [],
-            serverShop: [],
-            badges: [],
+            serverShop: {},
+            badges: {},
         };
         this.userData = {
             hp: 4,
@@ -122,7 +122,7 @@ class GuildClass {
      * Update a users econ either add or remove econ
      * @param {String} guildId - guild id
      * @param {String} userId - user id
-     * @param {Number} econ - amount of econ to add or remove
+     * @param {number} econ - amount of econ to add or remove
      * @param {Boolean} add - default is true
      * @returns {Promise<void>}
      */
@@ -137,15 +137,15 @@ class GuildClass {
      * @param {String} guildId - guild id
      * @param {String} userId - user id
      * @param {Array} data - data to update
-     * @param {Number} [data.hp] - health
-     * @param {Number} [data.mood] - mood
-     * @param {Number} [data.focus] - focus
-     * @param {Number} [data.mana] - mana
-     * @param {Number} [data.level] - level
+     * @param {number} [data.hp] - health
+     * @param {number} [data.mood] - mood
+     * @param {number} [data.focus] - focus
+     * @param {number} [data.mana] - mana
+     * @param {number} [data.level] - level
      * @param {String} [data.class] - class
      * @param {String} [data.timezone] - user timezone
      * @param {Array} [data.badges] - user badges earned
-     * @param {Number} [data.econ] - user econ
+     * @param {number} [data.econ] - user econ
      * @returns {Promise<void>}
      */
     async updateUserProfile(guildId, userId, data){
@@ -160,7 +160,7 @@ class GuildClass {
      * Update the users vc hours
      * @param {String} guildId - guild id
      * @param {String} userId - user id
-     * @param {Number} hours - amount of hours to add
+     * @param {number} hours - amount of hours to add
      * @returns {Promise<void>}
      */
     async updateUserVCHours(guildId, userId, hours) {
@@ -275,8 +275,8 @@ class GuildClass {
      * update the server config
      * @param {String} guildId
      * @param {Object} data
-     * @param {Number} [data.roomRent] - The rent per day in coins
-     * @param {Number} [data.econRate] - The econ rate per min
+     * @param {number} [data.roomRent] - The rent per day in coins
+     * @param {number} [data.econRate] - The econ rate per min
      * @param {Array} [data.experienceRate] - The experience rate per message
      * @param {Array} [data.trackedChannelsIds] - The tracked channels ids
      * @param {Array} [data.serverShop] - The server shop
@@ -284,6 +284,7 @@ class GuildClass {
      * @param {string} [data.ticketChannelId] - The ticket channel id
      * @param {string} [data.configChannelId] - The config channel id
      * @param {string} [data.welcomeChannelId] - The welcome channel id
+     * @param {Array} [data.adminRolesIds] - The admin roles ids that can use the admin commands
      * @returns {Promise<void>}
      */
     async updateServerConfig(guildId, data){
@@ -319,7 +320,7 @@ class GuildClass {
      * update the private channel balance
      * @param guildId{String} the guild id
      * @param channelId{String} the channel id to update
-     * @param change{Number} the amount to add or remove
+     * @param change{number} the amount to add or remove
      * @param add{Boolean} default true
      * @returns {Promise<void>}
      */

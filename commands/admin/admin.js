@@ -29,7 +29,6 @@ export default {
                 .setDescription('Did you mess up adding an emblem?')
                 .setRequired(false)
         ),
-
     async execute(interaction) {
         const user = interaction.user
         if(interaction.member.roles.cache.has('1252396630339223613') || interaction.member.roles.cache.has('1298317864058617867')) {
