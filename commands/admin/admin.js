@@ -8,12 +8,12 @@ export const data = new SlashCommandBuilder()
     .addUserOption(option =>
         option.setName('user')
             .setDescription('The user whose profile you want to see')
-            .setRequired(true)
+            .setRequired(false)
     )
     .addStringOption(option =>
         option.setName('raid')
             .setDescription('Raid user completed')
-            .setRequired(true)
+            .setRequired(false)
             .addChoices(
                 ...fs.readdirSync('./images/raids')
                     .filter(file => file.endsWith('.png'))
@@ -28,7 +28,6 @@ export const data = new SlashCommandBuilder()
             .setDescription('Did you mess up adding an emblem?')
             .setRequired(false)
     );
-
 export async function execute(interaction) {
     const user = interaction.user
     if(interaction.member.roles.cache.has('1252396630339223613') || interaction.member.roles.cache.has('1298317864058617867')) {

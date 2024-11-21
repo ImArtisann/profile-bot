@@ -3,8 +3,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname } from 'path';
-import {databaseActions} from "./database/mongodb.js";
 import 'dotenv/config';
+import Redis from "ioredis";
+import {guildActions} from "./classes/guild.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -15,11 +16,14 @@ async function main() {
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.MessageContent,
             GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.GuildPresences
+            GatewayIntentBits.GuildPresences,
+            GatewayIntentBits.GuildVoiceStates
         ]
     });
 
-    await databaseActions.connect();
+    const connection = new Redis(process.env.REDIS_URL);
+
+    await guildActions.initialize(connection);
 
     client.commands = new Collection();
 
@@ -67,7 +71,7 @@ async function main() {
         }
     }
 
-    client.login(process.env.BOT_TOKEN).then(r => {
+    client.login(process.env.NODE_ENV === 'development' ? process.env.TEST_BOT_TOKEN : process.env.BOT_TOKEN).then(r => {
         console.log('Bot is running!');
     });
 }

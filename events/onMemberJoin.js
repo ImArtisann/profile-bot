@@ -1,5 +1,6 @@
 import {Client as client, Events} from "discord.js";
 import {createImage} from "../commands/utility/profile.js";
+import {guildActions} from "../classes/guild.js";
 
 export const name = Events.GuildMemberAdd;
 export const once = false;
@@ -34,4 +35,5 @@ export async function execute(member) {
         files: [attachment]
     });
     member.roles.add('1252692250958237828');
+    await guildActions.addMember(member.guild.id, member.id)
 }

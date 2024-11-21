@@ -24,16 +24,26 @@ for (const folder of commandFolders) {
     }
 }
 
-const rest = new REST().setToken(process.env.BOT_TOKEN);
+let rest;
+let data;
 
 (async () => {
     try {
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
-
-        const data = await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: commands },
-        );
+        const isTestEnvironment = process.env.NODE_ENV === 'development';
+        if(isTestEnvironment) {
+            rest = new REST().setToken(process.env.TEST_BOT_TOKEN);
+            data = await rest.put(
+                Routes.applicationGuildCommands(process.env.TEST_CLIENT_ID, process.env.TEST_GUILD_ID),
+                {body: commands},
+            );
+        }else {
+            rest = new REST().setToken(process.env.BOT_TOKEN);
+            data = await rest.put(
+                Routes.applicationCommands(process.env.CLIENT_ID),
+                {body: commands},
+            );
+        }
 
         console.log(`Successfully reloaded ${data.length} application (/) commands.`);
     } catch (error) {
