@@ -1,13 +1,13 @@
 import fs from 'fs';
-import path, {dirname} from 'path';
-import {fileURLToPath, pathToFileURL} from 'url';
+import path, { dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = dirname(dirname(fileURLToPath(import.meta.url)));
 
 class EventHandler {
     /**
      * Create a new CommandHandler
-     * @param {import(discord.js).Client} client - The Discord client
+     * @param {Client<Boolean>} client - The Discord client
      */
     constructor(client) {
         this.client = client;
@@ -20,8 +20,7 @@ class EventHandler {
      * It handles both one-time ('once') and recurring ('on') events.
      */
     async loadEvents() {
-        const eventFiles = fs.readdirSync(this.eventsPath)
-            .filter(file => file.endsWith('.js'));
+        const eventFiles = fs.readdirSync(this.eventsPath).filter(file => file.endsWith('.js'));
 
         for (const file of eventFiles) {
             const filePath = path.join(this.eventsPath, file);
@@ -29,11 +28,7 @@ class EventHandler {
                 const eventModule = await import(pathToFileURL(filePath));
 
                 // Destructure event details with default fallbacks
-                const {
-                    name,
-                    once = false,
-                    execute
-                } = eventModule.default || eventModule;
+                const { name, once = false, execute } = eventModule.default || eventModule;
 
                 if (!name || !execute) {
                     console.warn(`Skipping invalid event in ${file}`);

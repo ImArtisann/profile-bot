@@ -1,10 +1,9 @@
-
 class Timer {
     /**
      * Creates an instance of Timer.
      *
      * @constructor
-     * @param {number} duration - The duration of the timer in milliseconds.
+     * @param {number} duration - The duration of the timer in mins.
      * @param {string} name - The name of the timer.
      * @param {string} userId - The ID of the user associated with the timer.
      * @param {Function|null} [callback=null] - Optional callback function to be called when the timer completes.
@@ -32,19 +31,22 @@ class Timer {
      * @returns {Promise<Timer|boolean>} A promise that resolves with the Timer instance when completed,
      *                                   or false if the timer cannot be started.
      */
-    start(){
-        if(this.status !== 'initialized' || this.status !== 'paused'){
+    start() {
+        if (this.status !== 'initialized' && this.status !== 'paused') {
             return false;
         }
         this.status = 'running';
         this.startTime = Date.now();
 
         return new Promise((resolve, reject) => {
-            this.timer = setTimeout(() => {
-                this.complete();
-                resolve(this);
-            },this.remainingTime)
-        })
+            this.timer = setTimeout(
+                () => {
+                    this.complete();
+                    resolve(this);
+                },
+                Number(this.remainingTime * 60000)
+            );
+        });
     }
 
     /**
@@ -53,8 +55,8 @@ class Timer {
      *
      * @returns {Timer|Boolean} The Timer instance, allowing for method chaining.
      */
-    pause(){
-        if(this.status !== 'running'){
+    pause() {
+        if (this.status !== 'running') {
             return false;
         }
         clearTimeout(this.timer);
@@ -70,8 +72,8 @@ class Timer {
      * @returns {Promise<Timer>|boolean} Returns a Promise that resolves with the Timer instance if successful,
      *                                   or false if timer is not in paused state
      */
-    resume(){
-        if(this.status !== 'paused'){
+    resume() {
+        if (this.status !== 'paused') {
             return false;
         }
         return this.start();
@@ -82,12 +84,12 @@ class Timer {
      *
      * @returns {Timer} The Timer instance, allowing for method chaining.
      */
-    complete() {
+    async complete() {
         this.status = 'completed';
         this.endTime = Date.now();
 
-        if(typeof this.callback === 'function'){
-            this.callback(this);
+        if (typeof this.callback === 'function') {
+            await Promise.resolve(this.callback(this));
         }
         return this;
     }
@@ -99,9 +101,9 @@ class Timer {
      *
      * @returns {Timer} The Timer instance for method chaining
      */
-    reset(){
-        clearTimeout(this.timer)
-        this.reminingTime = this.duration;
+    reset() {
+        clearTimeout(this.timer);
+        this.remainingTime = this.duration;
         this.startTime = null;
         this.endTime = null;
         this.status = 'initialized';
@@ -116,12 +118,12 @@ class Timer {
      * @param {number} intervalDuration - The duration of the interval in milliseconds.
      * @returns {Timer} The Timer instance, allowing for method chaining.
      */
-    addInterval(callback, intervalDuration){
+    addInterval(callback, intervalDuration) {
         const interval = setInterval(() => {
-            if(this.status === 'running'){
+            if (this.status === 'running') {
                 callback(this);
             }
-        }, intervalDuration)
+        }, intervalDuration);
         this.intervals.push(interval);
         return this;
     }
@@ -131,7 +133,7 @@ class Timer {
      *
      * @returns {void}
      */
-    clearIntervals(){
+    clearIntervals() {
         this.intervals.forEach(clearInterval);
         this.intervals = [];
     }

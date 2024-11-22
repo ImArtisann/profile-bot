@@ -1,20 +1,21 @@
-import {REST, Routes, Collection, Events} from 'discord.js';
+import { REST, Routes, Collection, Events } from 'discord.js';
 import fs from 'fs';
-import path, {dirname} from 'path';
-import {fileURLToPath, pathToFileURL} from 'url';
-import 'dotenv/config'
+import path, { dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import 'dotenv/config';
+import { guildActions } from '../actions/guild.js';
 
 const __dirname = dirname(dirname(fileURLToPath(import.meta.url)));
 
 class CommandHandler {
     /**
      * Create a new SlashCommandHandler
-     * @param {import(discord.js).Client} client - The Discord client
+     * @param {Client<Boolean>} client - The Discord client
      */
     constructor(client) {
         /**
          * Discord client
-         * @type {import(discord.js).Client}
+         * @type {Client<Boolean>}
          */
         this.client = client;
 
@@ -51,8 +52,7 @@ class CommandHandler {
             const categoryPath = path.join(this.commandsPath, folder);
 
             // Get JS files in this category
-            const commandFiles = fs.readdirSync(categoryPath)
-                .filter(file => file.endsWith('.js'));
+            const commandFiles = fs.readdirSync(categoryPath).filter(file => file.endsWith('.js'));
 
             for (const file of commandFiles) {
                 const filePath = path.join(categoryPath, file);
@@ -74,7 +74,9 @@ class CommandHandler {
 
                         console.log(`Loaded slash command: ${command.data.name}`);
                     } else {
-                        console.warn(`[WARNING] Command at ${filePath} is missing required "data" or "execute" property.`);
+                        console.warn(
+                            `[WARNING] Command at ${filePath} is missing required "data" or "execute" property.`
+                        );
                     }
                 } catch (error) {
                     console.error(`Error loading command from ${file}:`, error);
@@ -103,20 +105,14 @@ class CommandHandler {
                 // Development: Register to specific guild
                 this.rest = new REST().setToken(process.env.TEST_BOT_TOKEN);
                 const data = await this.rest.put(
-                    Routes.applicationGuildCommands(
-                        process.env.TEST_CLIENT_ID,
-                        process.env.TEST_GUILD_ID
-                    ),
+                    Routes.applicationGuildCommands(process.env.TEST_CLIENT_ID, process.env.TEST_GUILD_ID),
                     { body: commands }
                 );
                 console.log(`Successfully reloaded ${data.length} guild (/) commands.`);
             } else {
                 // Production: Register globally
                 this.rest = new REST().setToken(process.env.BOT_TOKEN);
-                const data = await this.rest.put(
-                    Routes.applicationCommands(process.env.CLIENT_ID),
-                    { body: commands }
-                );
+                const data = await this.rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
                 console.log(`Successfully reloaded ${data.length} global (/) commands.`);
             }
         } catch (error) {
@@ -131,7 +127,6 @@ class CommandHandler {
         this.client.on(Events.InteractionCreate, async interaction => {
             // Check if it's a slash command interaction
             if (interaction.isChatInputCommand()) {
-
                 // Find the command
                 const command = this.client.commands.get(interaction.commandName);
 
@@ -147,16 +142,16 @@ class CommandHandler {
                     if (interaction.replied || interaction.deferred) {
                         await interaction.followUp({
                             content: 'There was an error while executing this command!',
-                            ephemeral: true
+                            ephemeral: true,
                         });
                     } else {
                         await interaction.reply({
                             content: 'There was an error while executing this command!',
-                            ephemeral: true
+                            ephemeral: true,
                         });
                     }
                 }
-            }else if (interaction.isAutocomplete()) {
+            } else if (interaction.isAutocomplete()) {
                 const command = this.client.commands.get(interaction.commandName);
 
                 if (!command) {
@@ -175,12 +170,21 @@ class CommandHandler {
                         await interaction.respond(
                             filtered.map(choice => ({
                                 name: choice.name,
-                                value: choice.value
+                                value: choice.value,
                             }))
                         );
-                    }
-                    // Check for autocomplete method
-                    else if (command.autocomplete) {
+                    } else if (
+                        interaction.commandName === 'config' &&
+                        interaction.options.getSubcommand() === 'badge'
+                    ) {
+                        const badges = await guildActions.getServerBadgesNames(interaction.guild.id);
+                        await interaction.respond(
+                            badges.map(badge => ({
+                                name: badge,
+                                value: badge,
+                            }))
+                        );
+                    } else if (command.autocomplete) {
                         await command.autocomplete(interaction);
                     }
                 } catch (error) {

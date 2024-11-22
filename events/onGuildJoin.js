@@ -1,5 +1,5 @@
-import {Client as client, Events} from "discord.js";
-import {guildActions} from "../classes/guild.js";
+import { Client as client, Events } from 'discord.js';
+import { guildActions } from '../actions/guild.js';
 
 export const name = Events.GuildCreate;
 export const once = false;

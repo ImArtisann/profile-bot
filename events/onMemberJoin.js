@@ -1,6 +1,6 @@
-import {Client as client, Events} from "discord.js";
-import {createImage} from "../commands/utility/profile.js";
-import {guildActions} from "../classes/guild.js";
+import { Client as client, Events } from 'discord.js';
+import { createImage } from '../commands/utility/profile.js';
+import { guildActions } from '../actions/guild.js';
 
 export const name = Events.GuildMemberAdd;
 export const once = false;
@@ -12,9 +12,9 @@ export async function execute(member) {
         mood: 4,
         focus: 4,
         mana: 4,
-        level: "???",
-        class: "???",
-    }
+        level: '???',
+        class: '???',
+    };
     const attachment = await createImage(user, data, member);
     const embed = {
         title: '**Are you ready to Gamify your Life?**',
@@ -29,11 +29,11 @@ export async function execute(member) {
         color: 0x0099ff,
     };
     channel.send({
-        embeds: [embed]
+        embeds: [embed],
     });
     channel.send({
-        files: [attachment]
+        files: [attachment],
     });
     member.roles.add('1252692250958237828');
-    await guildActions.addMember(member.guild.id, member.id)
+    await guildActions.addMember(member.guild.id, member.id);
 }

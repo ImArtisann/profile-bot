@@ -1,34 +1,29 @@
-import {EmbedBuilder, SlashCommandBuilder} from "discord.js";
-import {databaseActions} from "../../database/mongodb.js";
+import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { guildActions } from '../../actions/guild.js';
+import EmbedHelper from '../../classes/embedHelper.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('leaderboard')
-        .setDescription('View the leaderboard')
-    ,
+        .setDescription('View the leaderboard econ is default')
+        .addStringOption(option =>
+            option
+                .setName('leaderboard')
+                .setDescription('The leaderboard you want to view')
+                .addChoices(
+                    { name: 'Econ', value: 'econ' },
+                    { name: 'VC Hours', value: 'hoursVC' },
+                    { name: 'Messages', value: 'messages' }
+                )
+        ),
     async execute(interaction) {
-        let leaderboard = await getLeaderboard();
-        await interaction.reply({embeds: [leaderboard], ephemeral: false});
-    }
-}
+        let leaderboard = await guildActions.getServerLeaderboard(
+            interaction.guild.id,
+            interaction.options.getString('leaderboard') ?? 'econ'
+        );
+        let embed = new EmbedHelper();
+        embed = await embed.makeLeaderboard(interaction.options.getString('leaderboard') ?? 'econ', leaderboard);
 
-async function getLeaderboard() {
-    const users = await databaseActions.getUsers();
-    const topUsers = users
-        .filter(user => user.econ)
-        .sort((a, b) => b.econ - a.econ)
-        .slice(0, 5)
-        .map((user, index) => ({
-            id: user._id,
-            value: user.econ
-        }));
-    const embed = new EmbedBuilder()
-        .setTitle('Leaderboard')
-        .setColor('#0099ff')
-    for(const user of topUsers){
-        embed.addFields(
-            {name: `#${topUsers.indexOf(user) + 1}`, value: `**<@${user.id}>**`, inline: true},
-            {name: 'Balance', value: `**${user.value}**`, inline: true});
-    }
-    return embed;
-}
+        await interaction.reply({ embeds: [embed], ephemeral: false });
+    },
+};
