@@ -5,8 +5,8 @@ import * as path from 'path'
 import 'dotenv/config'
 import Redis from 'ioredis'
 import { guildActions } from './actions/guildActions.js'
-import EventHandler from './classes/eventHandler.js'
-import CommandHandler from './classes/commandHandler.js'
+import EventRegister from './register/eventRegister.js'
+import CommandRegister from './register/commandRegister.js'
 import { userActions } from './actions/userActions.js'
 import { roomsActions } from './actions/roomsActions.js'
 
@@ -28,11 +28,11 @@ async function main() {
 	await userActions.initialize(connection)
 	await roomsActions.initialize(connection)
 
-	const commandHandler = new CommandHandler(client)
+	const commandHandler = new CommandRegister(client)
 	await commandHandler.loadCommands()
 	commandHandler.setupInteractionHandler()
 
-	const eventHandler = new EventHandler(client)
+	const eventHandler = new EventRegister(client)
 	await eventHandler.loadEvents()
 
 	client

@@ -1,6 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
-import { guildActions } from '../../actions/guildActions.js'
-import { embedHelper } from '../../classes/embedHelper.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -16,20 +16,7 @@ export default {
 					{ name: 'Messages', value: 'messages' },
 				),
 		),
-	async execute(interaction) {
-		try {
-			let leaderboard = await guildActions.getServerLeaderboard(
-				interaction.guild.id,
-				interaction.options.getString('leaderboard') ?? 'econ',
-			)
-			let embed = await embedHelper.makeLeaderboard(
-				interaction.options.getString('leaderboard') ?? 'econ',
-				leaderboard,
-			)
-
-			await interaction.reply({ embeds: [embed], ephemeral: false })
-		} catch (e) {
-			console.log(`Error occurred in command leaderboard: ${e}`)
-		}
-	},
+	execute: errorHandler('Command Leaderboard')(async (interaction) => {
+		await commandRouter.handle(interaction)
+	}),
 }

@@ -1,18 +1,17 @@
 import { Events } from 'discord.js'
 import { blackJack } from '../handlers/blackJackHandler.js'
 import { userActions } from '../actions/userActions.js'
-
+import { errorHandler } from '../handlers/errorHandler.js'
+import { buttonRouter } from '../routers/buttonRouter.js'
 export const name = Events.InteractionCreate
 export const once = false
 
 export async function execute(interaction) {
 	try {
 		if (!interaction.isButton()) return
-		const button = interaction.customId
-		const type = button.split(':')[0]
-		const id = button.split(':')[2]
-		const user = interaction.user.id
-		const message = interaction.message
+
+		await buttonRouter.handle(interaction)
+
 		switch (type) {
 			case 'BJ':
 				if (id !== user) {
@@ -45,3 +44,5 @@ export async function execute(interaction) {
 		console.log(`Error occurred in onButton: ${e}`)
 	}
 }
+
+

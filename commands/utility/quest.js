@@ -1,6 +1,8 @@
 import { SlashCommandBuilder } from 'discord.js'
 import { userActions } from '../../actions/userActions.js'
 import { embedHelper } from '../../classes/embedHelper.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -46,41 +48,7 @@ export default {
 						.setRequired(false),
 				),
 		),
-	async execute(interaction) {
-		try {
-			const guildId = interaction.guild.id
-			const userId = interaction.options.getUser('user')?.id || interaction.user.id
-			switch (interaction.options.getSubcommand()) {
-				case 'set':
-					await userActions.setUserQuest(guildId, userId, {
-						name: interaction.options.getString('quest'),
-						description: interaction.options.getString('description'),
-						deadline: interaction.options.getString('deadline'),
-						reward: interaction.options.getString('reward'),
-					})
-					break
-				case 'view':
-					let embed
-					const quest = await userActions.getUserQuest(guildId, userId)
-					if (quest) {
-						embed = await embedHelper.makeQuest(quest, userId)
-						await interaction.reply({ embeds: [embed] })
-					} else {
-						await interaction.reply({
-							content: 'You do not have a quest set',
-							ephemeral: true,
-						})
-					}
-					break
-				default:
-					await interaction.reply({
-						content: 'This command is not yet implemented',
-						ephemeral: true,
-					})
-					break
-			}
-		} catch (e) {
-			console.log(`Error occurred in quest command: ${e}`)
-		}
-	},
+	execute: errorHandler('Command Quest')( async (interaction) => {
+		await commandRouter.handle(interaction)
+	}),
 }

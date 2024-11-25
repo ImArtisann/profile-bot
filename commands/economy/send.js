@@ -1,5 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js'
 import { userActions } from '../../actions/userActions.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -17,26 +19,7 @@ export default {
 				.setDescription('The amount of money you want to send')
 				.setRequired(true),
 		),
-	async execute(interaction) {
-		try {
-			const user = interaction.user.id
-			const receivingUser = interaction.options.getUser('user')
-			const amount = interaction.options.getInteger('amount')
-			if (
-				await userActions.sendEcon(interaction.guild.id, user, receivingUser.id, amount)
-			) {
-				await interaction.reply({
-					content: `You sent ${amount} coins to ${receivingUser.username}`,
-					ephemeral: true,
-				})
-			} else {
-				await interaction.reply({
-					content: `You do not have enough money to send ${amount} coins`,
-					ephemeral: true,
-				})
-			}
-		} catch (e) {
-			console.log(`Error occurred in command send: ${e}`)
-		}
-	},
+	execute: errorHandler('Command Send')(async (interaction) => {
+		await commandRouter.handle(interaction)
+	}),
 }

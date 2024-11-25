@@ -1,4 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -19,14 +21,7 @@ export default {
 				.setRequired(true),
 		),
 
-	async execute(interaction) {
-		try {
-			await interaction.reply({
-				content: 'This command is not yet implemented',
-				ephemeral: true,
-			})
-		} catch (e) {
-			console.log(`Error occurred in schedule command: ${e}`)
-		}
-	},
+	execute: errorHandler('Command Schedule')(async (interaction) => {
+		await commandRouter.handle(interaction)
+	}),
 }

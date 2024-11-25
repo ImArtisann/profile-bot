@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js'
-import { userActions } from '../../actions/userActions.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -67,26 +68,9 @@ export default {
 		{ name: 'Warlock', value: 'Warlock' },
 		{ name: 'Monk', value: 'Monk' },
 	],
-	async execute(interaction) {
-		try {
-			const user = interaction.user.id
-			const guild = interaction.guild.id
-			const options = interaction.options.data
-			let data = {}
-			for (const option of options) {
-				if (!checkValid(option.name, option.value)) {
-					await interaction.reply({ content: 'Invalid input!', ephemeral: true })
-					return
-				}
-				data[option.name] = option.value
-				data['timestamp'] = new Date().toLocaleString('en-US', options)
-			}
-			await userActions.updateUserProfile(guild, user, data)
-			await interaction.reply({ content: 'Stats Updated!', ephemeral: true })
-		} catch (e) {
-			console.log(`Error occurred in stats command: ${e}`)
-		}
-	},
+	execute: errorHandler('Command Stats')(async (interaction) => {
+		await commandRouter.handle(interaction)
+	}),
 }
 
 /**

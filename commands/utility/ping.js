@@ -1,4 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 /**
  * Ping command module
@@ -15,13 +17,7 @@ export default {
 	 * Execute the ping command
 	 * @param {import(discord.js).CommandInteraction} interaction - The command interaction
 	 */
-	async execute(interaction) {
-		try {
-			await interaction.reply(`Pong! (${interaction.client.ws.ping}ms)`, {
-				ephemeral: true,
-			})
-		} catch (e) {
-			console.log(`Error occurred in ping command: ${e}`)
-		}
-	},
+	execute: errorHandler('Command Ping')(async(interaction) => {
+		await commandRouter.handle(interaction)
+	}),
 }

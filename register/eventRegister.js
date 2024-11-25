@@ -4,9 +4,9 @@ import { fileURLToPath, pathToFileURL } from 'url'
 
 const __dirname = dirname(dirname(fileURLToPath(import.meta.url)))
 
-class EventHandler {
+class EventRegister {
 	/**
-	 * Create a new CommandHandler
+	 * Create a new CommandRegister
 	 * @param {Client<Boolean>} client - The Discord client
 	 */
 	constructor(client) {
@@ -60,4 +60,4 @@ class EventHandler {
 	}
 }
 
-export default EventHandler
+export default EventRegister

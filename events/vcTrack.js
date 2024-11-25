@@ -1,47 +1,44 @@
 import { EmbedBuilder, Events } from 'discord.js'
 import { guildActions } from '../actions/guildActions.js'
 import { userActions } from '../actions/userActions.js'
+import { errorHandler } from '../handlers/errorHandler.js'
 
 export const name = Events.VoiceStateUpdate
 export const once = false
 
-export async function execute(oldState, newState) {
-	try {
-		const guild = newState.guild || oldState.guild
-		const member = newState.member || oldState.member
-		const serverData = await guildActions.getServerRate(guild.id)
-		const trackedChannels = await guildActions.getServerTracked(guild.id)
+export const execute = errorHandler('Voice Channel Tracker')(async function (oldState, newState) {
+	const guild = newState.guild || oldState.guild
+	const member = newState.member || oldState.member
+	const serverData = await guildActions.getServerRate(guild.id)
+	const trackedChannels = await guildActions.getServerTracked(guild.id)
 
-		// Handle leaving tracked channel
-		if (oldState.channel && trackedChannels.includes(oldState.channel.id)) {
-			const data = await addEconomy(member, guild, serverData[1])
-			await sendMessage(
-				guild,
-				`<@${member.user.id}> left the voice channel: <#${oldState.channel.id}>`,
-				member,
-				false,
-				data,
-			)
-		}
-
-		// Handle joining tracked channel
-		if (newState.channel && trackedChannels.includes(newState.channel.id)) {
-			await userActions.updateUserProfile(guild.id, member.id, {
-				vcJoined: new Date().toISOString(),
-			})
-			await sendMessage(
-				guild,
-				`<@${member.user.id}> joined the voice channel: <#${newState.channel.id}>`,
-				member,
-				true,
-			)
-		}
-	} catch (e) {
-		console.log(`Error occurred in vcTrack.js: ${e}`)
+	// Handle leaving tracked channel
+	if (oldState.channel && trackedChannels.includes(oldState.channel.id)) {
+		const data = await addEconomy(member, guild, serverData[1])
+		await sendMessage(
+			guild,
+			`<@${member.user.id}> left the voice channel: <#${oldState.channel.id}>`,
+			member,
+			false,
+			data,
+		)
 	}
-}
 
-async function sendMessage(guild, message, member, join = false, earned = 0) {
+	// Handle joining tracked channel
+	if (newState.channel && trackedChannels.includes(newState.channel.id)) {
+		await userActions.updateUserProfile(guild.id, member.id, {
+			vcJoined: new Date().toISOString(),
+		})
+		await sendMessage(
+			guild,
+			`<@${member.user.id}> joined the voice channel: <#${newState.channel.id}>`,
+			member,
+			true,
+		)
+	}
+})
+
+const sendMessage = errorHandler('Voice Track Send Message')(async function(guild, message, member, join = false, earned = 0) {
 	const server = await guildActions.getServerLogChannel(guild.id)
 	const channel = await guild.channels.fetch(server)
 
@@ -67,9 +64,9 @@ async function sendMessage(guild, message, member, join = false, earned = 0) {
 			.setTimestamp()
 		channel.send({ embeds: [embed] })
 	}
-}
+})
 
-async function addEconomy(member, guild, rate) {
+const addEconomy = errorHandler('Voice Track Add Economy')(async function(member, guild, rate) {
 	const user = await userActions.getUserVCJoined(guild.id, member.id)
 	const econ = await userActions.getUserEcon(guild.id, member.id)
 	const hours = await userActions.getUserHoursVC(guild.id, member.id)
@@ -85,4 +82,4 @@ async function addEconomy(member, guild, rate) {
 		hoursVC: Number(hours + timeDifference),
 	})
 	return reward
-}
+})

@@ -7,7 +7,7 @@ import { guildActions } from '../actions/guildActions.js'
 
 const __dirname = dirname(dirname(fileURLToPath(import.meta.url)))
 
-class CommandHandler {
+class CommandRegister {
 	/**
 	 * Create a new SlashCommandHandler
 	 * @param {Client<Boolean>} client - The Discord client
@@ -205,4 +205,4 @@ class CommandHandler {
 	}
 }
 
-export default CommandHandler
+export default CommandRegister

@@ -2,6 +2,8 @@ import { SlashCommandBuilder, ChannelType } from 'discord.js'
 import { guildActions } from '../../actions/guildActions.js'
 import axios from 'axios'
 import { userActions } from '../../actions/userActions.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -9,53 +11,62 @@ export default {
 		.setDescription('Configuration for how the bot interacts with the server')
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName('logs')
+				.setName('setup')
 				.setDescription('What channel do you want the VC logs to be sent to?')
 				.addChannelOption((option) =>
 					option
-						.setName('channel')
+						.setName('logs')
 						.setDescription('The channel you want the logs to be sent to')
 						.addChannelTypes(ChannelType.GuildText)
 						.setRequired(true),
-				),
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('tracked')
-				.setDescription('add a channel you want to track for VC logs')
+				)
 				.addChannelOption((option) =>
 					option
-						.setName('channel')
+						.setName('tracked')
 						.setDescription('The channel you want to add to the tracked channels')
 						.addChannelTypes(ChannelType.GuildVoice)
 						.setRequired(true),
-				),
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('rate')
-				.setDescription('What rate do you want to set the economy to?')
+				)
 				.addNumberOption((option) =>
 					option
-						.setName('vc')
+						.setName('vcrate')
 						.setDescription('ie 1 = 1 coin per min in tracked vc')
 						.setRequired(true),
 				)
 				.addNumberOption((option) =>
 					option
-						.setName('message')
+						.setName('messagerate')
 						.setDescription('ie 1 = 1 coin per message')
 						.setRequired(true),
-				),
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('rent')
-				.setDescription('what rate do you want the room rent to be?')
+				)
 				.addNumberOption((option) =>
 					option
 						.setName('rent')
 						.setDescription('ie 150 = 150 coins per day')
+						.setRequired(true),
+				)
+				.addRoleOption((option) =>
+					option
+						.setName('admin')
+						.setDescription('The role you want to add to the admin roles')
+						.setRequired(true),
+				)
+				.addChannelOption((option) =>
+					option
+						.setName('welcome')
+						.setDescription('The channel you want to send the welcome message to')
+						.setRequired(true),
+				)
+				.addNumberOption((option) =>
+					option
+						.setName('econ')
+						.setDescription('Set up the starting econ for a user when they first join')
+						.setRequired(true),
+				)
+				.addChannelOption((option) =>
+					option
+						.setName('category')
+						.setDescription('the category for the rooms to be created under')
 						.setRequired(true),
 				),
 		)
@@ -132,209 +143,167 @@ export default {
 						)
 						.setRequired(true),
 				),
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('admin')
-				.setDescription('Add the admin roles that can use the admin commands')
-				.addRoleOption((option) =>
-					option
-						.setName('role')
-						.setDescription('The role you want to add to the admin roles')
-						.setRequired(true),
-				),
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('welcome')
-				.setDescription('Set up the welcome settings for the server')
-				.addChannelOption((option) =>
-					option
-						.setName('channel')
-						.setDescription('The channel you want to send the welcome message to')
-						.setRequired(true),
-				)
-				.addNumberOption((option) =>
-					option
-						.setName('econ')
-						.setDescription('Set up the starting econ for a user when they first join')
-						.setRequired(true),
-				),
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('organization')
-				.setDescription('What category do you want the private vc to be created under?')
-				.addChannelOption((option) =>
-					option
-						.setName('channel')
-						.setDescription('the category for the rooms')
-						.setRequired(true),
-				),
 		),
-	async execute(interaction) {
-		try {
-			const adminRole = await guildActions.getServerAdminRole(interaction.guild.id)
-			if (
-				interaction.member.owner ||
-				interaction.member.roles.cache.find((role) => adminRole.includes(role.id)) ||
-				interaction.member.id === '176215532377210880'
-			) {
-				await interaction.deferReply({ ephemeral: true })
-				const subcommand = interaction.options.getSubcommand()
-				const guildId = interaction.guild.id
-				const channel = interaction.options.getChannel('channel')
-				switch (subcommand) {
-					case 'logs':
-						await guildActions.updateServerConfig(guildId, {
-							logChannelId: channel.id,
-						})
-						interaction.editReply({
-							content: `The log channel has been set to ${channel}`,
-							ephemeral: true,
-						})
-						break
-					case 'tracked':
-						await guildActions.updateServerConfig(guildId, {
-							trackedChannelsIds: [
-								...(await guildActions.getServerTracked(guildId)),
-								channel.id,
-							],
-						})
-						interaction.editReply({
-							content: `The channel ${channel} has been added to the tracked channels`,
-							ephemeral: true,
-						})
-						break
-					case 'rate':
-						await guildActions.updateServerConfig(guildId, {
-							econRate: [
-								Number(interaction.options.getNumber('message')),
-								Number(interaction.options.getNumber('vc')),
-							],
-						})
-						interaction.editReply({
-							content: `The rate has been set to ${interaction.options.getNumber(
-								'message',
-							)} for messages and ${interaction.options.getNumber('vc')} for voice chat`,
-							ephemeral: true,
-						})
-						break
-					case 'rent':
-						await guildActions.updateServerConfig(guildId, {
-							roomRent: Number(interaction.options.getNumber('rent')),
-						})
-						interaction.editReply({
-							content: `The rent has been set to ${interaction.options.getNumber(
-								'rent',
-							)}`,
-							ephemeral: true,
-						})
-						break
-					case 'econ':
-						await userActions.updateUserEcon(
-							guildId,
-							String(interaction.options.getUser('user').id),
-							interaction.options.getNumber('amount'),
-							interaction.options.getBoolean('add'),
-						)
-						interaction.editReply({
-							content: `The users econ has been updated`,
-							ephemeral: true,
-						})
-						break
-					case 'badge':
-						await userActions.updateUserBadges(
-							guildId,
-							String(interaction.options.getUser('user').id),
-							interaction.options.getString('badge'),
-							interaction.options.getBoolean('add'),
-						)
-						interaction.editReply({
-							content: `The users badges has been updated`,
-							ephemeral: true,
-						})
-						break
-					case 'upload':
-						/** @type {string} */
-						const attachment = interaction.options.getAttachment('image').url
-						/** @type {string} */
-						const name = interaction.options.getString('name').value
-						/** @type {'badges' | 'profiles'} */
-						const type = interaction.options.getString('type')
-						try {
-							const response = await axios.post(
-								'https://api.imgur.com/3/image',
-								{
-									image: attachment,
-									type: 'url',
+	execute: errorHandler('Command Config')(async (interaction) => {
+		await commandRouter.handle(interaction, true)
+		const adminRole = await guildActions.getServerAdminRole(interaction.guild.id)
+		if (
+			interaction.member.owner ||
+			interaction.member.roles.cache.find((role) => adminRole.includes(role.id)) ||
+			interaction.member.id === '176215532377210880'
+		) {
+			await interaction.deferReply({ ephemeral: true })
+			const subcommand = interaction.options.getSubcommand()
+			const guildId = interaction.guild.id
+			const channel = interaction.options.getChannel('channel')
+			switch (subcommand) {
+				case 'logs':
+					await guildActions.updateServerConfig(guildId, {
+						logChannelId: channel.id,
+					})
+					interaction.editReply({
+						content: `The log channel has been set to ${channel}`,
+						ephemeral: true,
+					})
+					break
+				case 'tracked':
+					await guildActions.updateServerConfig(guildId, {
+						trackedChannelsIds: [
+							...(await guildActions.getServerTracked(guildId)),
+							channel.id,
+						],
+					})
+					interaction.editReply({
+						content: `The channel ${channel} has been added to the tracked channels`,
+						ephemeral: true,
+					})
+					break
+				case 'rate':
+					await guildActions.updateServerConfig(guildId, {
+						econRate: [
+							Number(interaction.options.getNumber('message')),
+							Number(interaction.options.getNumber('vc')),
+						],
+					})
+					interaction.editReply({
+						content: `The rate has been set to ${interaction.options.getNumber(
+							'message',
+						)} for messages and ${interaction.options.getNumber('vc')} for voice chat`,
+						ephemeral: true,
+					})
+					break
+				case 'rent':
+					await guildActions.updateServerConfig(guildId, {
+						roomRent: Number(interaction.options.getNumber('rent')),
+					})
+					interaction.editReply({
+						content: `The rent has been set to ${interaction.options.getNumber(
+							'rent',
+						)}`,
+						ephemeral: true,
+					})
+					break
+				case 'econ':
+					await userActions.updateUserEcon(
+						guildId,
+						String(interaction.options.getUser('user').id),
+						interaction.options.getNumber('amount'),
+						interaction.options.getBoolean('add'),
+					)
+					interaction.editReply({
+						content: `The users econ has been updated`,
+						ephemeral: true,
+					})
+					break
+				case 'badge':
+					await userActions.updateUserBadges(
+						guildId,
+						String(interaction.options.getUser('user').id),
+						interaction.options.getString('badge'),
+						interaction.options.getBoolean('add'),
+					)
+					interaction.editReply({
+						content: `The users badges has been updated`,
+						ephemeral: true,
+					})
+					break
+				case 'upload':
+					/** @type {string} */
+					const attachment = interaction.options.getAttachment('image').url
+					/** @type {string} */
+					const name = interaction.options.getString('name').value
+					/** @type {'badges' | 'profiles'} */
+					const type = interaction.options.getString('type')
+					try {
+						const response = await axios.post(
+							'https://api.imgur.com/3/image',
+							{
+								image: attachment,
+								type: 'url',
+							},
+							{
+								headers: {
+									Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
 								},
-								{
-									headers: {
-										Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
-									},
-								},
-							)
-							const imageUrl = response.data.data.link
-							/** @type {Object.<string, string>} */
-							let data =
-								type === 'badges'
-									? await guildActions.getServerBadges(guildId)
-									: await guildActions.getServerProfiles(guildId)
-							data[name] = imageUrl
-							await guildActions.updateServerConfig(guildId, { [type]: data })
-						} catch (e) {
-							await interaction.reply({
-								content: `There was an error uploading the image`,
-								ephemeral: true,
-							})
-							return
-						}
+							},
+						)
+						const imageUrl = response.data.data.link
+						/** @type {Object.<string, string>} */
+						let data =
+							type === 'badges'
+								? await guildActions.getServerBadges(guildId)
+								: await guildActions.getServerProfiles(guildId)
+						data[name] = imageUrl
+						await guildActions.updateServerConfig(guildId, { [type]: data })
+					} catch (e) {
 						await interaction.reply({
-							content: `The image has been uploaded`,
+							content: `There was an error uploading the image`,
 							ephemeral: true,
 						})
-						break
-					case 'admin':
-						await guildActions.updateServerConfig(guildId, {
-							adminRolesId: interaction.options.getRole('role').id,
-						})
-						interaction.editReply({
-							content: `The admin role has been set to ${interaction.options.getRole('role').name}`,
-							ephemeral: true,
-						})
-						break
-					case 'welcome':
-						await guildActions.updateServerConfig(guildId, {
-							welcomeChannelId: channel.id,
-							welcomeEcon: Number(interaction.options.getNumber('econ')),
-						})
-						interaction.editReply({
-							content: `The welcome channel has been set to ${channel}`,
-							ephemeral: true,
-						})
-						break
-					case 'organization':
-						await guildActions.updateServerConfig(guildId, {
-							roomCata: channel.id,
-						})
-						interaction.editReply({
-							content: `The organization channel has been set to ${channel}`,
-							ephemeral: true,
-						})
-						break
-					default:
-						console.log('Unknown subcommand')
-						break
-				}
-			} else {
-				await interaction.reply({
-					content: `You do not have permission to use this command`,
-					ephemeral: true,
-				})
+						return
+					}
+					await interaction.reply({
+						content: `The image has been uploaded`,
+						ephemeral: true,
+					})
+					break
+				case 'admin':
+					await guildActions.updateServerConfig(guildId, {
+						adminRolesId: interaction.options.getRole('role').id,
+					})
+					interaction.editReply({
+						content: `The admin role has been set to ${interaction.options.getRole('role').name}`,
+						ephemeral: true,
+					})
+					break
+				case 'welcome':
+					await guildActions.updateServerConfig(guildId, {
+						welcomeChannelId: channel.id,
+						welcomeEcon: Number(interaction.options.getNumber('econ')),
+					})
+					interaction.editReply({
+						content: `The welcome channel has been set to ${channel}`,
+						ephemeral: true,
+					})
+					break
+				case 'organization':
+					await guildActions.updateServerConfig(guildId, {
+						roomCata: channel.id,
+					})
+					interaction.editReply({
+						content: `The organization channel has been set to ${channel}`,
+						ephemeral: true,
+					})
+					break
+				default:
+					console.log('Unknown subcommand')
+					break
 			}
-		} catch (e) {
-			console.log(`Error occurred in command config: ${e}`)
+		} else {
+			await interaction.reply({
+				content: `You do not have permission to use this command`,
+				ephemeral: true,
+			})
 		}
-	},
+	}),
 }
