@@ -4,6 +4,7 @@ import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'node:fs'
 import { AttachmentBuilder } from 'discord.js'
+import { creatorWorker } from '../images/creator.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const foldersPath = path.join(__dirname, '../../images')
@@ -362,15 +363,6 @@ class UserClass {
 			context.fillText(data?.level?.toString() || '???', 156, 523)
 		}
 
-		/**
-		 * Renders the timestamp on the profile image.
-		 *
-		 * This function is responsible for drawing the timestamp on the profile image canvas. It uses the `variables`
-		 * object to determine the font and color of the timestamp text.
-		 *
-		 * @param {Object} data - The data object containing the timestamp information.
-		 * @param {string} [data.timestamp] - The timestamp to be displayed on the profile image.
-		 */
 		const addTimeStamp = () => {
 			context.font = this.variables.timeFont
 			context.fillStyle = this.variables.nameColor
@@ -412,7 +404,46 @@ class UserClass {
 		const buffer = await canvas.toBuffer('image/png')
 		return test
 			? await fs.writeFileSync('profile.png', buffer)
-			: new AttachmentBuilder(buffer, { name: 'profile.png' })
+			: {
+			buffer: buffer,
+			name: 'profile.png',
+		}
+	}
+
+	async callWorker(guildId, user, member) {
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				reject(new Error('Worker timeout'))
+			}, timeout)
+
+			let data = {
+				guildId,
+				user,
+				member,
+			}
+
+			const handler = (response) => {
+				if (response.type === 'profile') {
+					clearTimeout(timeoutId)
+					creatorWorker.removeListener('message', handler)
+					resolve(response)
+				} else if (response.type === 'error') {
+					clearTimeout(timeoutId)
+					creatorWorker.removeListener('message', handler)
+					reject(new Error(response.error))
+				}
+			}
+
+			creatorWorker.on('message', handler)
+
+			creatorWorker.postMessage({
+				data: {
+					...data,
+					type: 'profile',
+					userId,
+				},
+			})
+		})
 	}
 
 	/**

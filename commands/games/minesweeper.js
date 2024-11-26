@@ -1,0 +1,10 @@
+import { SlashCommandBuilder } from 'discord.js'
+import { errorHandler } from '../../handlers/errorHandler.js'
+import { commandRouter } from '../../routers/commandRouter.js'
+
+export default {
+	data: new SlashCommandBuilder().setName('minesweeper').setDescription('play a game of minesweeper'),
+	async execute(interaction) {
+		await commandRouter.handle(interaction)
+	},
+}
