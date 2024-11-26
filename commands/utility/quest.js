@@ -48,7 +48,7 @@ export default {
 						.setRequired(false),
 				),
 		),
-	execute: errorHandler('Command Quest')( async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

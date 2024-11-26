@@ -16,7 +16,7 @@ export default {
 				.setDescription('The user whose profile you want to see')
 				.setRequired(false),
 		),
-	execute: errorHandler('Command Profile')(async(interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

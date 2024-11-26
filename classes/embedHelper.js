@@ -92,16 +92,19 @@ class EmbedHelper {
 	async blackJack(userId, userEcon, gameState, userStand = false) {
 		try {
 			this.builder.setTitle(`Blackjack Game`)
-			this.builder.setDescription(`<@${userId}> current balance is ${userEcon}`)
+			this.builder.setDescription(
+				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+			)
 
 			const { dealerHand, playerHand } = gameState
-			let dealerValue = blackJack.getHandValue(dealerHand)
-			let userValue = blackJack.getHandValue(playerHand)
-
 			const dealerHandBlackJack = blackJack.checkForBlackJack(dealerHand)
 			const userHandBlackJack = blackJack.checkForBlackJack(playerHand)
 			const dealerBust = blackJack.checkForBust(dealerHand)
 			const userBust = blackJack.checkForBust(playerHand)
+
+			// Get best values for both hands
+			const dealerBestValue = blackJack.getBestHandValue(dealerHand)
+			const playerBestValue = blackJack.getBestHandValue(playerHand)
 
 			let result = ''
 			if (dealerHandBlackJack && userHandBlackJack) {
@@ -115,64 +118,105 @@ class EmbedHelper {
 			} else if (userBust) {
 				result = 'You lost! You busted!'
 			} else if (userStand) {
-				if (dealerValue.value > userValue.value) {
+				if (dealerBestValue > playerBestValue) {
 					result = 'You lost! The dealer has a higher hand!'
-				} else if (dealerValue.value < userValue.value) {
+				} else if (dealerBestValue < playerBestValue) {
 					result = 'You won! You have a higher hand!'
 				} else {
 					result = "It's a tie!"
 				}
 			}
 
-			if (userValue.aces > 0) {
-				if (userValue.value > 21) {
-					userValue = `${userValue.value - userValue.aces * 10}`
-				} else {
-					userValue = `${userValue.value - userValue.aces * 10} / ${userValue.value}`
-				}
-			} else {
-				userValue = `${userValue.value}`
-			}
-
-			if (!dealerHandBlackJack && !userStand) {
-				dealerValue = blackJack.getCardValue(dealerHand[1])
-			} else {
-				if (dealerValue.aces > 0) {
-					if (dealerValue.value > 21) {
-						dealerValue = `${dealerValue.value - dealerValue.aces * 10}`
-					} else {
-						dealerValue = `${dealerValue.value - dealerValue.aces * 10} / ${dealerValue.value}`
-					}
-				} else {
-					dealerValue = `${dealerValue.value}`
-				}
-			}
-
+			// Format values using best hand value
+			let formattedUserValue
 			if (userHandBlackJack) {
-				userValue = `${userValue.value}`
+				formattedUserValue = '21 (Blackjack!)'
+			} else {
+				const userHand = blackJack.getHandValue(playerHand)
+				if (userHand.aces > 0 && playerBestValue < 21) {
+					const low = playerBestValue
+					const high = userHand.value <= 21 ? userHand.value : playerBestValue
+					formattedUserValue = `${low}/${high}`
+				} else {
+					formattedUserValue = playerBestValue.toString()
+				}
 			}
 
-			this.builder.setFields(
+			// Format dealer value
+			let formattedDealerValue
+			if (!dealerHandBlackJack && !userStand) {
+				// During gameplay, only show the face-up card
+				formattedDealerValue = blackJack.getCardValue(dealerHand[1]).toString()
+			} else {
+				// When game is over, show best possible value
+				if (dealerHandBlackJack) {
+					formattedDealerValue = '21 (Blackjack!)'
+				} else {
+					const dealerHand = blackJack.getHandValue(gameState.dealerHand)
+					if (dealerHand.aces > 0 && dealerBestValue < 21) {
+						const low = dealerBestValue
+						const high = dealerHand.value <= 21 ? dealerHand.value : dealerBestValue
+						formattedDealerValue = `${low}/${high}`
+					} else {
+						formattedDealerValue = dealerBestValue.toString()
+					}
+				}
+			}
+
+			// Log values for debugging
+			console.log({
+				dealerRawValue: blackJack.getHandValue(dealerHand),
+				dealerBestValue,
+				formattedDealerValue,
+				playerRawValue: blackJack.getHandValue(playerHand),
+				playerBestValue,
+				formattedUserValue,
+			})
+
+			this.builder.setFields([
 				{
 					name: 'Dealer Hand',
-					value: `${dealerValue.toString()}`,
+					value: formattedDealerValue,
 					inline: true,
 				},
 				{
 					name: 'Player Hand',
-					value: `${userValue.toString()}`,
+					value: formattedUserValue,
 					inline: true,
 				},
-			)
+			])
+
 			if (result) {
 				this.builder.addFields({ name: 'Result', value: result, inline: false })
 			}
+
 			this.builder.setImage('attachment://blackJack.png')
 			this.builder.setColor(0x0099ff)
+
 			return this.builder
 		} catch (e) {
-			console.log('EmbedHelper.blackJack', e)
+			console.error('EmbedHelper.blackJack error:', e)
+			throw e
 		}
+	}
+
+	formatHandValue(handValue, isBlackjack) {
+		if (isBlackjack) {
+			return '21 (Blackjack!)'
+		}
+
+		if (handValue.aces > 0) {
+			// If total is over 21, only show the lower value
+			if (handValue.value > 21) {
+				return (handValue.value - handValue.aces * 10).toString()
+			}
+			// Show both possible values when under 21 with aces
+			const lowerValue = handValue.value - handValue.aces * 10
+			const higherValue = handValue.value
+			return `${lowerValue}/${higherValue}`
+		}
+
+		return handValue.value.toString()
 	}
 }
 

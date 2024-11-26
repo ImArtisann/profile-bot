@@ -17,7 +17,7 @@ export default {
 	 * Execute the ping command
 	 * @param {import(discord.js).CommandInteraction} interaction - The command interaction
 	 */
-	execute: errorHandler('Command Ping')(async(interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

@@ -13,10 +13,6 @@ class CommandRegister {
 	 * @param {Client<Boolean>} client - The Discord client
 	 */
 	constructor(client) {
-		/**
-		 * Discord client
-		 * @type {Client<Boolean>}
-		 */
 		this.client = client
 
 		/**

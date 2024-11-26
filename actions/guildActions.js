@@ -8,6 +8,7 @@ class GuildClass {
 			adminRolesId: [''],
 			logChannelId: '',
 			welcomeChannelId: '',
+			starterRoleId: '',
 			welcomeEcon: 100,
 			ticketChannelId: '',
 			configChannelId: '',
@@ -227,6 +228,7 @@ class GuildClass {
 	 * @param {Array} [data.logChannelId] - The log channel id
 	 * @param {string} [data.ticketChannelId] - The ticket channel id
 	 * @param {string} [data.configChannelId] - The config channel id
+	 * @param {string} [data.starterRoleId] - The starter role id
 	 * @param {string} [data.welcomeChannelId] - The welcome channel id
 	 * @param {number} [data.welcomeEcon] - The welcome econ a user gets when joining
 	 * @param {Array} [data.adminRolesId] - The admin roles ids that can use the admin commands

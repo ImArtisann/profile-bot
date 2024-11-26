@@ -21,7 +21,7 @@ export default {
 				.setRequired(true),
 		),
 
-	execute: errorHandler('Command Schedule')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

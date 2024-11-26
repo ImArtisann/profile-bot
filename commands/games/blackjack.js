@@ -14,7 +14,7 @@ export default {
 				.setRequired(true),
 		),
 
-	execute: errorHandler('Command Blackjack')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

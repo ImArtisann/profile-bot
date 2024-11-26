@@ -6,7 +6,7 @@ export default {
 	data: new SlashCommandBuilder()
 		.setName('shop')
 		.setDescription('Buy items from the shop'),
-	execute: errorHandler('Command Shop')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

@@ -68,28 +68,7 @@ export default {
 		{ name: 'Warlock', value: 'Warlock' },
 		{ name: 'Monk', value: 'Monk' },
 	],
-	execute: errorHandler('Command Stats')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
-}
-
-/**
- * Checks the validity of the input values for various user stats.
- *
- * @param {string} name - The name of the user stat.
- * @param {string|number} value - The value of the user stat.
- * @returns {boolean} - True if the input value is valid, false otherwise.
- */
-function checkValid(name, value) {
-	if (name === 'level') {
-		return value <= 100
-	} else if (['hp', 'focus', 'mood', 'mana'].includes(name)) {
-		if (isNaN(Number(value))) {
-			return false
-		} else {
-			return value <= 10
-		}
-	} else {
-		return typeof value === 'string'
-	}
+	},
 }

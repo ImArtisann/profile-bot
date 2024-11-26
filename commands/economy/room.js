@@ -58,7 +58,7 @@ export default {
 		.addSubcommand((subcommand) =>
 			subcommand.setName('status').setDescription('Display the status of the room'),
 		),
-	execute: errorHandler('Command Room')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

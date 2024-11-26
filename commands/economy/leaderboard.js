@@ -1,6 +1,7 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 import { errorHandler } from '../../handlers/errorHandler.js'
 import { commandRouter } from '../../routers/commandRouter.js'
+import { Command } from 'ioredis'
 
 export default {
 	data: new SlashCommandBuilder()
@@ -16,7 +17,7 @@ export default {
 					{ name: 'Messages', value: 'messages' },
 				),
 		),
-	execute: errorHandler('Command Leaderboard')(async (interaction) => {
+	execute: async (interaction) => {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

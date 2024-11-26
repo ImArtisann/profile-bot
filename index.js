@@ -1,7 +1,4 @@
 import { Client, Collection, Events, GatewayIntentBits, REST } from 'discord.js'
-import * as fs from 'fs'
-import * as path from 'path'
-
 import 'dotenv/config'
 import Redis from 'ioredis'
 import { guildActions } from './actions/guildActions.js'
@@ -9,6 +6,7 @@ import EventRegister from './register/eventRegister.js'
 import CommandRegister from './register/commandRegister.js'
 import { userActions } from './actions/userActions.js'
 import { roomsActions } from './actions/roomsActions.js'
+import { startWorker } from './images/creator.js'
 
 async function main() {
 	const client = new Client({
@@ -28,6 +26,7 @@ async function main() {
 	await userActions.initialize(connection)
 	await roomsActions.initialize(connection)
 
+	await startWorker()
 	const commandHandler = new CommandRegister(client)
 	await commandHandler.loadCommands()
 	commandHandler.setupInteractionHandler()
@@ -35,15 +34,16 @@ async function main() {
 	const eventHandler = new EventRegister(client)
 	await eventHandler.loadEvents()
 
-	client
-		.login(
+	try {
+		await client.login(
 			process.env.NODE_ENV === 'development'
 				? process.env.TEST_BOT_TOKEN
 				: process.env.BOT_TOKEN,
 		)
-		.then((r) => {
-			console.log('Bot is running!')
-		})
+		console.log('Bot is running!')
+	} catch (error) {
+		console.log('Login error:', error)
+	}
 }
 
 await main()

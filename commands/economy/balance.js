@@ -1,5 +1,4 @@
 import { SlashCommandBuilder } from 'discord.js'
-import { errorHandler } from '../../handlers/errorHandler.js'
 import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
@@ -10,10 +9,10 @@ export default {
 			option
 				.setName('user')
 				.setDescription('The user to check the balance of.')
-				.setRequired(false)
+				.setRequired(false),
 		),
 
-	execute: errorHandler('Command Balance')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

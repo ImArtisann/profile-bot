@@ -21,7 +21,7 @@ export default {
 				.setDescription('How long you want the reminder to be in minutes')
 				.setRequired(true),
 		),
-	execute: errorHandler('Command Remind')(async(interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }

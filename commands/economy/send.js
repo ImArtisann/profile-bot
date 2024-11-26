@@ -19,7 +19,7 @@ export default {
 				.setDescription('The amount of money you want to send')
 				.setRequired(true),
 		),
-	execute: errorHandler('Command Send')(async (interaction) => {
+	async execute(interaction) {
 		await commandRouter.handle(interaction)
-	}),
+	},
 }
