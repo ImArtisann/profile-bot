@@ -184,6 +184,7 @@ class CommandRegister {
 						interaction.options.getSubcommand() === 'badge'
 					) {
 						const badges = await guildActions.getServerBadgesNames(interaction.guild.id)
+						console.log(badges)
 						await interaction.respond(
 							badges.map((badge) => ({
 								name: badge,

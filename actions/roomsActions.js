@@ -154,10 +154,10 @@ class RoomsClass {
 	/**
 	 * Retrieves all the private channels (rooms) for the specified guild.
 	 * @param {string} guildId - The ID of the guild to retrieve the rooms for.
-	 * @returns {Promise<Object>} An object containing all the private channels (rooms) for the specified guild.
+	 * @returns {Promise<Array[string]>} An array of room IDs for the specified guild.
 	 */
 	async getServerRooms(guildId) {
-		return this.client.hgetall(`${guildId}:privateChannels`)
+		return this.client.hkeys(`${guildId}:privateChannels`)
 	}
 
 	/**

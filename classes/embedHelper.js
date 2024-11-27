@@ -1,6 +1,8 @@
 import { EmbedBuilder } from 'discord.js'
 import { roomsActions } from '../actions/roomsActions.js'
 import { blackJack } from '../handlers/blackJackHandler.js'
+import { errorHandler } from '../handlers/errorHandler.js'
+import { highOrLower } from '../handlers/holHandler.js'
 
 class EmbedHelper {
 	constructor() {
@@ -16,20 +18,24 @@ class EmbedHelper {
 	 * @param {number} data.amount - The amount of the specified type for the user.
 	 * @returns {EmbedBuilder} - The generated leaderboard embed.
 	 */
-	async makeLeaderboard(type = 'econ', data) {
-		this.builder.setTitle(`${type.toUpperCase()} Leaderboard`)
-		this.builder.setDescription(`Top 10 ${type} users`)
-		this.builder.setColor(0x0099ff)
-		let rank = 1
-		for (const user of data) {
-			this.builder.addFields({
-				name: `#${rank} <@${user.userId}>`,
-				value: user.amount.toString(),
-				inline: false,
-			})
-			rank++
+	makeLeaderboard(type = 'econ', data) {
+		try {
+			this.builder.setTitle(`${type.toUpperCase()} Leaderboard`)
+			this.builder.setDescription(`Top 10 ${type} users`)
+			this.builder.setColor(0x0099ff)
+			let rank = 1
+			for (const user of data) {
+				this.builder.addFields({
+					name: `#${rank} <@${user.userId}>`,
+					value: user.amount.toString(),
+					inline: false,
+				})
+				rank++
+			}
+			return this.builder
+		} catch (e) {
+			console.log(`Error creating Leaderboard: ${e}`)
 		}
-		return this.builder
 	}
 
 	/**
@@ -39,16 +45,20 @@ class EmbedHelper {
 	 * @param {string} userId - The ID of the user the quest is for.
 	 * @returns {EmbedBuilder} - The generated quest embed.
 	 */
-	async makeQuest(quest, userId) {
-		this.builder.setTitle(`<@${userId}> Quest`)
-		this.builder.setDescription(`${quest.description}`)
-		this.builder.setFields([
-			{ name: 'Name', value: quest.name, inline: false },
-			{ name: 'Deadline', value: quest.deadline, inline: false },
-			{ name: 'Reward', value: quest.reward, inline: false },
-		])
-		this.builder.setColor(0x0099ff)
-		return this.builder
+	makeQuest(quest, userId) {
+		try {
+			this.builder.setTitle(`<@${userId}> Quest`)
+			this.builder.setDescription(`${quest.description}`)
+			this.builder.setFields([
+				{ name: 'Name', value: quest.name, inline: false },
+				{ name: 'Deadline', value: quest.deadline, inline: false },
+				{ name: 'Reward', value: quest.reward, inline: false },
+			])
+			this.builder.setColor(0x0099ff)
+			return this.builder
+		} catch (e) {
+			console.log(`Error creating Quest: ${e}`)
+		}
 	}
 
 	/**
@@ -59,25 +69,29 @@ class EmbedHelper {
 	 * @returns {Promise<EmbedBuilder>} - The generated room statistics embed.
 	 */
 	async roomStats(guild, roomId) {
-		const room = await roomsActions.getRoom(guild, roomId)
-		this.builder.setTitle(`${room.name} Control Panel`)
-		this.builder.setFields(
-			{ name: 'Channel', value: `<#${room.channel}>`, inline: true },
-			{ name: 'Owner', value: `<@${room.owner}>`, inline: true },
-			{ name: 'Room Balance:', value: `${room.balance}`, inline: true },
-			{
-				name: 'Created At',
-				value: `<t:${Math.floor(room.timeStamp / 1000)}:f>`,
-				inline: true,
-			},
-			{
-				name: 'Members',
-				value: room.members.map((userId) => `<@${userId}>`).join(', '),
-				inline: false,
-			},
-		)
-		this.builder.setColor(0x0099ff)
-		return this.builder
+		try {
+			const room = await roomsActions.getRoom(guild, roomId)
+			this.builder.setTitle(`${room.name} Control Panel`)
+			this.builder.setFields(
+				{ name: 'Channel', value: `<#${room.channel}>`, inline: true },
+				{ name: 'Owner', value: `<@${room.owner}>`, inline: true },
+				{ name: 'Room Balance:', value: `${room.balance}`, inline: true },
+				{
+					name: 'Created At',
+					value: `<t:${Math.floor(room.timeStamp / 1000)}:f>`,
+					inline: true,
+				},
+				{
+					name: 'Members',
+					value: room.members.map((userId) => `<@${userId}>`).join(', '),
+					inline: false,
+				},
+			)
+			this.builder.setColor(0x0099ff)
+			return this.builder
+		} catch (e) {
+			console.log(`Error creating room stats: ${e}`)
+		}
 	}
 
 	/**
@@ -89,7 +103,7 @@ class EmbedHelper {
 	 * @param {boolean} [userStand=false] - Whether the user has chosen to stand in the game.
 	 * @returns {EmbedBuilder} - The generated Blackjack game embed.
 	 */
-	async blackJack(userId, userEcon, gameState, userStand = false) {
+	blackJack(userId, userEcon, gameState, userStand = false) {
 		try {
 			this.builder.setTitle(`Blackjack Game`)
 			this.builder.setDescription(
@@ -195,28 +209,48 @@ class EmbedHelper {
 
 			return this.builder
 		} catch (e) {
-			console.error('EmbedHelper.blackJack error:', e)
-			throw e
+			console.log(`Error creating blackjack EH: ${e}`)
 		}
 	}
 
-	formatHandValue(handValue, isBlackjack) {
-		if (isBlackjack) {
-			return '21 (Blackjack!)'
-		}
+	highOrLow(userId, userEcon, gameState) {
+		try {
+			this.builder.setTitle(`High or Low Game`)
+			this.builder.setDescription(
+				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+			)
 
-		if (handValue.aces > 0) {
-			// If total is over 21, only show the lower value
-			if (handValue.value > 21) {
-				return (handValue.value - handValue.aces * 10).toString()
+			// Ensure we have valid numbers for display
+			const higherChance = gameState.percent?.higher || 0
+			const lowerChance = gameState.percent?.lower || 0
+
+			this.builder.setFields([
+				{
+					name: 'Higher Or Same',
+					value: higherChance.toString(),
+					inline: true,
+				},
+				{
+					name: 'Lower Or Same',
+					value: lowerChance.toString(),
+					inline: true,
+				},
+			])
+
+			if (highOrLower.checkUserLose(userId)) {
+				this.builder.addFields({ name: 'Result', value: 'You lost!', inline: false })
+			} else {
+				this.builder.addFields({
+					name: 'Result',
+					value: `You won! Reward: ${gameState.reward?.toFixed(2) || '1.00'}`,
+					inline: false,
+				})
 			}
-			// Show both possible values when under 21 with aces
-			const lowerValue = handValue.value - handValue.aces * 10
-			const higherValue = handValue.value
-			return `${lowerValue}/${higherValue}`
+			this.builder.setImage('attachment://hol.png')
+			return this.builder
+		} catch (e) {
+			console.log(`Error creating HoL EH: ${e}`)
 		}
-
-		return handValue.value.toString()
 	}
 }
 

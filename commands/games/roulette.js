@@ -4,8 +4,8 @@ import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('dice')
-		.setDescription('roll some dice')
+		.setName('roulette')
+		.setDescription('Spin the roulette wheel')
 		.addNumberOption((option) =>
 			option
 				.setName('bet')

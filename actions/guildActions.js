@@ -1,3 +1,5 @@
+import { errorHandler } from '../handlers/errorHandler.js'
+
 class GuildClass {
 	constructor() {
 		this.client = null
@@ -43,16 +45,16 @@ class GuildClass {
 	 * Initialize the class with the redis client
 	 * @param {import('ioredis').Redis} client Redis client instance
 	 */
-	async initialize(client) {
+	initialize = errorHandler('Initializing guild actions')(async (client) => {
 		this.client = client
-	}
+	})
 
 	/**
 	 * When the bot joins the server create the entry in the database for the servers config
 	 * and create a db for all the users that are in that server
 	 * @param {import('discord.js').Guild} guild
 	 */
-	async createServer(guild) {
+	createServer = errorHandler('Create Server Guild Actions')(async (guild) => {
 		await this.client.set(`${guild.id}:config`, JSON.stringify(this.guildData))
 		let members = await guild.members.fetch()
 		for (const [memberId, member] of members) {
@@ -60,7 +62,7 @@ class GuildClass {
 				await this.addMember(guild.id, memberId)
 			}
 		}
-	}
+	})
 
 	/**
 	 * Add a user to the servers db
@@ -68,153 +70,169 @@ class GuildClass {
 	 * @param {String|import('discord.js').Snowflake} userId
 	 * @returns {Promise<void>}
 	 */
-	async addMember(guildId, userId) {
+	addMember = errorHandler('Add Member Guild Actions')(async (guildId, userId) => {
 		await this.client.hset(`${guildId}:users`, userId, JSON.stringify(this.userData))
-	}
+	})
 
 	/**
 	 * Get the servers rent per day in coins for a private VC
 	 * @param {String} guildId
 	 * @returns {Promise<number>}
 	 */
-	async getServerRent(guildId) {
+	getServerRent = errorHandler('Get Server Rent Guild Actions')(async (guildId) => {
 		const data = JSON.parse(await this.client.get(`${guildId}:config`))
 		return data.roomRent
-	}
+	})
 
 	/**
 	 * Get the servers econ rate for each min in a tracked VC
 	 * @param {String} guildId
 	 * @returns {Promise<[]>} - 0 - messages, 1 - VCMins
 	 */
-	async getServerRate(guildId) {
+	getServerRate = errorHandler('Get Server Rate Guild Actions')(async (guildId) => {
 		const data = JSON.parse(await this.client.get(`${guildId}:config`))
 		return data.econRate
-	}
+	})
 
 	/**
 	 * Get the servers experience rate [Messages, VCMins]
 	 * @param {String} guildId
 	 * @returns {Promise<number[]>}
 	 */
-	async getServerExperienceRate(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.experienceRate
-	}
+	getServerExperienceRate = errorHandler('Get Server Exp Rate Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.experienceRate
+		},
+	)
 
 	/**
 	 * Get the tracked VC channel ids where people can earn econ in
 	 * @param {String} guildId
 	 * @returns {Promise<[]>}
 	 */
-	async getServerTracked(guildId) {
+	getServerTracked = errorHandler('Get Server Tracked Guild Actions')(async (guildId) => {
 		const data = JSON.parse(await this.client.get(`${guildId}:config`))
 		return data.trackedChannelsIds
-	}
+	})
 
 	/**
 	 * Get the servers shop
 	 * @param {String} guildId
 	 * @returns {Promise<[]>}
 	 */
-	async getServerShop(guildId) {
+	getServerShop = errorHandler('Get Server Shop Guild Actions')(async (guildId) => {
 		const data = JSON.parse(await this.client.get(`${guildId}:config`))
 		return data.serverShop
-	}
+	})
 
 	/**
 	 * Get the server log channel where it tracks the vc and econ transfers
 	 * @param {String} guildId
 	 * @returns {Promise<string>}
 	 */
-	async getServerLogChannel(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.logChannelId
-	}
+	getServerLogChannel = errorHandler('Get Server Log Channel Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.logChannelId
+		},
+	)
 
 	/**
 	 * Get the server ticket channel
 	 * @param guildId{String}
 	 * @returns {Promise<string>}
 	 */
-	async getServerTicketChannel(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.ticketChannelId
-	}
+	getServerTicketChannel = errorHandler('Get Server Ticket Channel Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.ticketChannelId
+		},
+	)
 
 	/**
 	 * Get the server config channel id
 	 * @param guildId{String}
 	 * @returns {Promise<string>}
 	 */
-	async getServerConfigChannel(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.configChannelId
-	}
+	getServerConfigChannel = errorHandler('Get Server Config Channel Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.configChannelId
+		},
+	)
 
 	/**
 	 * Get the server welcome channel id
 	 * @param guildId{String}
 	 * @returns {Promise<string>}
 	 */
-	async getServerWelcomeChannel(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.welcomeChannelId
-	}
+	getServerWelcomeChannel = errorHandler('Get Server Welcome Channel Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.welcomeChannelId
+		},
+	)
 
 	/**
 	 * Get the names of the server badges
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<string[]>} - An array of badge names
 	 */
-	async getServerBadgesNames(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		let names = []
-		for (const key in data.badges) {
-			names.push(data.badges[key])
-		}
-		return names
-	}
+	getServerBadgesNames = errorHandler('Get Server Badges Names Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			let names = []
+			for (const [key] of Object.entries(data.badges)) {
+				names.push(key)
+			}
+			return names
+		},
+	)
 
 	/**
 	 * Get the server badges
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<Object>} - The badges object
 	 */
-	async getServerBadges(guildId) {
+	getServerBadges = errorHandler('Get Server Badges Guild Actions')(async (guildId) => {
 		const data = JSON.parse(await this.client.get(`${guildId}:config`))
 		return data.badges
-	}
+	})
 
 	/**
 	 * Get the server profiles
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<Object>} - The profiles object
 	 */
-	async getServerProfiles(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.profiles
-	}
+	getServerProfiles = errorHandler('Get Server Profiles Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.profiles
+		},
+	)
 
 	/**
 	 * Get the server admin roles IDs
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<string[]>} - An array of admin roles IDs
 	 */
-	async getServerAdminRole(guildId) {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.adminRolesId
-	}
+	getServerAdminRole = errorHandler('Get Server Admin Role Guild Actions')(
+		async (guildId) => {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.adminRolesId
+		},
+	)
 
 	/**
 	 * Get the room category ID where the rooms are created
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<string>} - The room category ID
 	 */
-	async getRoomCategory(guildId) {
+	getRoomCategory = errorHandler('Get Room Category Guild Actions')(async (guildId) => {
 		const data = JSON.parse(await this.client.get(`${guildId}:config`))
 		return data.roomCata
-	}
+	})
 
 	/**
 	 * update the server config
@@ -237,13 +255,15 @@ class GuildClass {
 	 * @param {string} [data.roomCata] - the room category id where the rooms are created
 	 * @returns {Promise<void>}
 	 */
-	async updateServerConfig(guildId, data) {
-		let config = JSON.parse(await this.client.get(`${guildId}:config`))
-		for (const key in data) {
-			config[key] = data[key]
-		}
-		await this.client.set(`${guildId}:config`, JSON.stringify(config))
-	}
+	updateServerConfig = errorHandler('Update Server Config Guild Actions')(
+		async (guildId, data) => {
+			let config = JSON.parse(await this.client.get(`${guildId}:config`))
+			for (const key in data) {
+				config[key] = data[key]
+			}
+			await this.client.set(`${guildId}:config`, JSON.stringify(config))
+		},
+	)
 
 	/**
 	 * add a private channel to a user and to the server
@@ -259,52 +279,26 @@ class GuildClass {
 	 * @param {number} roomInfo.roomBalance - The room's balance
 	 * @returns {Promise<void>}
 	 */
-	async addPrivateChannel(guildId, userId, channelId, roomInfo) {
-		let data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
-		data.privateChannels.push(channelId)
-		await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
-		await this.client.hset(
-			`${guildId}:privateChannels`,
-			channelId,
-			JSON.stringify(roomInfo),
-		)
-	}
+	addPrivateChannel = errorHandler('Add Private Channel Guild Actions')(
+		async (guildId, userId, channelId, roomInfo) => {
+			let data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
+			data.privateChannels.push(channelId)
+			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
+			await this.client.hset(
+				`${guildId}:privateChannels`,
+				channelId,
+				JSON.stringify(roomInfo),
+			)
+		},
+	)
 
-	async addTrackedChannel(guildId, channelId) {
-		let data = JSON.parse(await this.client.get(`${guildId}:config`))
-		data.trackedChannelsIds.push(channelId)
-		await this.client.set(`${guildId}:config`, JSON.stringify(data))
-	}
-
-	/**
-	 * update the private channel balance
-	 * @param guildId{String} the guild id
-	 * @param channelId{String} the channel id to update
-	 * @param change{number} the amount to add or remove
-	 * @param add{Boolean} default true
-	 * @returns {Promise<void>}
-	 */
-	async updatePrivateChannelBalance(guildId, channelId, change, add = true) {
-		let data = JSON.parse(await this.client.hget(`${guildId}:privateChannels`, channelId))
-		data.balance = add ? data.balance + change : data.balance - change
-		await this.client.hset(`${guildId}:privateChannels`, channelId, JSON.stringify(data))
-	}
-
-	/**
-	 * update the private channel members
-	 * @param guildId{String} the guild id
-	 * @param channelId{String} the channel id to update
-	 * @param userId{String} the user id to add or remove
-	 * @param add{Boolean} default true
-	 * @returns {Promise<void>}
-	 */
-	async updatePrivateChannelMembers(guildId, channelId, userId, add = true) {
-		let data = JSON.parse(await this.client.hget(`${guildId}:privateChannels`, channelId))
-		data.members = add
-			? data.members.push(userId)
-			: data.members.filter((id) => id !== userId)
-		await this.client.hset(`${guildId}:privateChannels`, channelId, JSON.stringify(data))
-	}
+	addTrackedChannel = errorHandler('Add Tracked Channel Guild Actions')(
+		async (guildId, channelId) => {
+			let data = JSON.parse(await this.client.get(`${guildId}:config`))
+			data.trackedChannelsIds.push(channelId)
+			await this.client.set(`${guildId}:config`, JSON.stringify(data))
+		},
+	)
 
 	/**
 	 * Retrieves the server leaderboard for the specified guild.
@@ -313,30 +307,32 @@ class GuildClass {
 	 *                                 Possible values: 'econ', 'messages', 'hoursVC'.
 	 * @returns {Promise<Object[]>} - An array of user objects representing the leaderboard.
 	 */
-	async getServerLeaderboard(guildId, type = 'econ') {
-		const data = await this.client.hgetall(`${guildId}:users`)
-		const leaderboard = []
-		for (const userId in data) {
-			const userData = JSON.parse(data[userId])
-			if (type === 'econ') {
-				leaderboard.push({
-					userId: userId,
-					amount: Number(userData.econ),
-				})
-			} else if (type === 'messages') {
-				leaderboard.push({
-					userId: userId,
-					amount: Number(userData.messages),
-				})
-			} else if (type === 'hoursVC') {
-				leaderboard.push({
-					userId: userId,
-					amount: Number(userData.hoursVC),
-				})
+	getServerLeaderboard = errorHandler('Get Server Leaderboard Guild Actions')(
+		async (guildId, type = 'econ') => {
+			const data = await this.client.hgetall(`${guildId}:users`)
+			const leaderboard = []
+			for (const userId in data) {
+				const userData = JSON.parse(data[userId])
+				if (type === 'econ') {
+					leaderboard.push({
+						userId: userId,
+						amount: Number(userData.econ),
+					})
+				} else if (type === 'messages') {
+					leaderboard.push({
+						userId: userId,
+						amount: Number(userData.messages),
+					})
+				} else if (type === 'hoursVC') {
+					leaderboard.push({
+						userId: userId,
+						amount: Number(userData.hoursVC),
+					})
+				}
 			}
-		}
-		return leaderboard.sort((a, b) => b[type] - a[type]).slice(0, 10)
-	}
+			return leaderboard.sort((a, b) => b[type] - a[type]).slice(0, 10)
+		},
+	)
 }
 
 export const guildActions = new GuildClass()

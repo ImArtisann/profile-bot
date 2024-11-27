@@ -1,4 +1,8 @@
-import { errorHandler } from '../handlers/errorHandler.js'
+import {
+	CommandError,
+	createCommandError,
+	errorHandler,
+} from '../handlers/errorHandler.js'
 import { userActions } from '../actions/userActions.js'
 import { embedHelper } from '../classes/embedHelper.js'
 import { timerManager } from '../classes/timerManager.js'
@@ -7,6 +11,7 @@ import { actionHelper } from '../classes/actionsHelper.js'
 import { guildActions } from '../actions/guildActions.js'
 import { roomsActions } from '../actions/roomsActions.js'
 import { AttachmentBuilder } from 'discord.js'
+import { highOrLower } from '../handlers/holHandler.js'
 
 class CommandRouter {
 	constructor() {
@@ -22,24 +27,19 @@ class CommandRouter {
 		const subcommand = interaction.options.getSubcommand(false)
 
 		const commandKey = subcommand ? `${command}.${subcommand}` : command
-		const handler = this.router.get(commandKey)
+		const handler = this.router.get(String(commandKey).toLowerCase())
 
 		if (!handler) {
-			console.log(`No handler found for ${commandKey}`)
-			return
+			throw createCommandError(`No handler found for ${commandKey}`, {
+				userMessage: 'This command is not available.',
+				severity: 'warning',
+			})
 		}
 
 		try {
 			await handler(interaction, interaction.guild, interaction.user)
 		} catch (error) {
 			console.error(`Error executing ${commandKey}:`, error)
-			// Handle error response to user
-			if (!interaction.replied && !interaction.deferred) {
-				await interaction.reply({
-					content: 'There was an error executing this command.',
-					ephemeral: true,
-				})
-			}
 		}
 	}
 }
@@ -58,14 +58,24 @@ commandRouter.register(
 
 commandRouter.register(
 	'profile',
-	errorHandler('Profile Command')(async (interaction) => {
+	errorHandler('Profile Command')(async (interaction, guild, user) => {
 		await interaction.deferReply()
 		const targetUser = interaction.options.getUser('user')
-		const user = targetUser ? targetUser : interaction.user
+		user = targetUser ? targetUser : user
 		const targetMember = interaction.options.getMember('user')
 		const member = targetMember ? targetMember : interaction.member
-		const image = await userActions.createProfilePic(interaction.guild.id, user, member)
-		await interaction.editReply({ files: [image] })
+
+		const image = await userActions.callWorker({
+			name: member.nickname || member.user.displayName,
+			avatarUrl: user.avatarURL({ extension: 'png', size: 512 }),
+			profileData: await userActions.getUserProfile(guild.id, user.id),
+			serverBadges: await guildActions.getServerBadges(guild.id),
+			type: 'profile',
+		})
+		const attachment = new AttachmentBuilder(Buffer.from(image.image.buffer), {
+			name: 'profile.png',
+		})
+		await interaction.editReply({ files: [attachment] })
 	}),
 )
 
@@ -79,7 +89,7 @@ commandRouter.register(
 			await interaction.reply({ embeds: [embed] })
 		} else {
 			await interaction.reply({
-				content: 'You do not have a quest set',
+				content: 'You do not have a quest set!',
 				ephemeral: true,
 			})
 		}
@@ -113,7 +123,7 @@ commandRouter.register(
 			await interaction.reply({ embeds: [embed] })
 		} else {
 			await interaction.reply({
-				content: 'You do not have a quest set',
+				content: 'User does not have a quest set!',
 				ephemeral: true,
 			})
 		}
@@ -172,8 +182,10 @@ commandRouter.register(
 		let data = {}
 		for (const option of options) {
 			if (!checkValid(option.name, option.value)) {
-				await interaction.reply({ content: 'Invalid input!', ephemeral: true })
-				return
+				await interaction.reply({
+					content: 'Invalid Option Given!',
+					ephemeral: true,
+				})
 			}
 			data[option.name] = option.value
 			data['timestamp'] = new Date().toLocaleString('en-US', options)
@@ -187,43 +199,59 @@ commandRouter.register(
 commandRouter.register(
 	'blackjack',
 	errorHandler('Blackjack Command')(async (interaction, guild, user) => {
-		try {
-			interaction.deferReply()
-			const bet = interaction.options.getNumber('bet')
-			let userEcon = await userActions.getUserEcon(guild.id, user.id)
+		interaction.deferReply()
+		const bet = interaction.options.getNumber('bet')
+		let userEcon = await userActions.getUserEcon(guild.id, user.id)
 
-			if (userEcon < bet) {
-				return interaction.reply({
-					content: `You do not have enough money to bet ${bet}`,
-					ephemeral: true,
-				})
-			}
-
-			if (blackJack.userHasGame(user.id)) {
-				return interaction.reply({
-					content: `You already have a game in progress`,
-					ephemeral: true,
-				})
-			}
-
-			await userActions.updateUserEcon(guild.id, user.id, bet, false)
-			await blackJack.startGame(user.id, bet, userEcon, interaction)
-		} catch (error) {
-			console.error('Error in blackjack command:', error)
-			await interaction.followUp({
-				content: 'There was an error starting the game. Please try again.',
+		if (userEcon < bet) {
+			await interaction.editReply({
+				content: "You don't have enough money to bet that much!",
 				ephemeral: true,
 			})
 		}
+
+		if (await blackJack.userHasGame(user.id)) {
+			await interaction.editReply({
+				content: 'You already have a game in progress!',
+				ephemeral: true,
+			})
+		}
+
+		await userActions.updateUserEcon(guild.id, user.id, bet, false)
+		await blackJack.startGame(user.id, bet, userEcon, interaction)
 	}),
 )
 
 commandRouter.register(
 	'cf',
-	errorHandler('CoinFlip Command')(async (interaction) => {
-		await interaction.reply('CoinFlip!', {
-			ephemeral: true,
-		})
+	errorHandler('CoinFlip Command')(async (interaction, guild, user) => {
+		const bet = interaction.options.getNumber('bet')
+		const userEcon = await userActions.getUserEcon(guild.id, user.id)
+		if (userEcon < bet) {
+			await interaction.reply({
+				content: "You don't have enough money to bet that much!",
+				ephemeral: true,
+			})
+		}
+		await userActions.updateUserEcon(guild.id, user.id, bet, false)
+		const randomNumber = Math.floor(Math.random() * 2)
+		const result = randomNumber === 0 ? 'Heads' : 'Tails'
+		const side = interaction.options.getString('side')
+		if (side && side.toLowerCase() === result.toLowerCase()) {
+			await interaction
+				.reply({
+					content: `You won ${bet * 1.5}! the result was ${result} you chose ${side}`,
+					ephemeral: true,
+				})
+				.then(async () => {
+					await userActions.updateUserEcon(guild.id, user.id, bet * 1.5, true)
+				})
+		} else {
+			await interaction.reply({
+				content: `You lost ${bet}! the result was ${result} you chose ${side}`,
+				ephemeral: true,
+			})
+		}
 	}),
 )
 
@@ -258,6 +286,59 @@ commandRouter.register(
 	'wheel',
 	errorHandler('Wheel Command')(async (interaction) => {
 		await interaction.reply('Wheel!', {
+			ephemeral: true,
+		})
+	}),
+)
+
+commandRouter.register(
+	'hol',
+	errorHandler('Hol Command')(async (interaction, guild, user) => {
+		interaction.deferReply()
+		const bet = interaction.options.getNumber('bet')
+		let userEcon = await userActions.getUserEcon(guild.id, user.id)
+
+		if (userEcon < bet) {
+			await interaction.editReply({
+				content: "You don't have enough money to bet that much!",
+				ephemeral: true,
+			})
+		}
+
+		if (await highOrLower.userHasGame(user.id)) {
+			await interaction.editReply({
+				content: 'You already have a game in progress!',
+				ephemeral: true,
+			})
+		}
+
+		await userActions.updateUserEcon(guild.id, user.id, bet, false)
+		await highOrLower.startGame(user.id, bet, userEcon, interaction)
+	}),
+)
+
+commandRouter.register(
+	'race',
+	errorHandler('Slots Command')(async (interaction) => {
+		await interaction.reply('Slots!', {
+			ephemeral: true,
+		})
+	}),
+)
+
+commandRouter.register(
+	'minesweeper',
+	errorHandler('Slots Command')(async (interaction) => {
+		await interaction.reply('Slots!', {
+			ephemeral: true,
+		})
+	}),
+)
+
+commandRouter.register(
+	'leave',
+	errorHandler('Slots Command')(async (interaction) => {
+		await interaction.reply('Slots!', {
 			ephemeral: true,
 		})
 	}),
@@ -311,10 +392,9 @@ commandRouter.register(
 		})
 		if (!success) {
 			await interaction.reply({
-				content: 'You do not have enough coins to rent a room',
+				content: 'You do not have enough funds to rent a room',
 				ephemeral: true,
 			})
-			return
 		}
 		await interaction.reply({
 			content: 'You have rented a room',
@@ -343,13 +423,13 @@ commandRouter.register(
 				})
 			} else {
 				await interaction.reply({
-					content: 'You do not have enough coins to deposit',
+					content: 'You do not have enough funds to deposit that amount',
 					ephemeral: true,
 				})
 			}
 		} else {
 			await interaction.reply({
-				content: 'You must use this command in the room you want to deposit to',
+				content: 'You must be in a room to deposit',
 				ephemeral: true,
 			})
 		}
@@ -360,32 +440,29 @@ commandRouter.register(
 	'room.invite',
 	errorHandler('Room.invite Command')(async (interaction, guild, user) => {
 		const channel = interaction.channel
-		const serverRooms = await roomsActions.getServerRooms(guild.id)
-		if (serverRooms.includes(channel.id)) {
-			const invite = await roomsActions.roomInvite(
-				guild.id,
-				channel.id,
-				interaction.options.getUser('user'),
-			)
-			if (invite) {
-				await interaction.reply({
-					content:
-						'You have invited ' + interaction.options.getUser('user') + ' to the room',
-					ephemeral: true,
-				})
-			} else {
-				await interaction.reply({
-					content:
-						'You must use this command in the room youd like to invite the user to or the user is already in the room',
-					ephemeral: true,
-				})
-			}
-		} else {
+		if (!(await roomsActions.getServerRooms(guild.id)).includes(channel.id)) {
 			await interaction.reply({
-				content: 'You must use this command in the room youd like to invite the user to',
+				content: 'You must use this command in a room chat',
 				ephemeral: true,
 			})
 		}
+
+		const invite = await roomsActions.roomInvite(
+			guild.id,
+			channel.id,
+			interaction.options.getUser('user'),
+		)
+		if (!invite) {
+			await interaction.reply({
+				content: 'You must use this command in a room chat',
+				ephemeral: true,
+			})
+		}
+
+		await interaction.reply({
+			content: `You have invited ${interaction.options.getUser('user')} to the room`,
+			ephemeral: true,
+		})
 	}),
 )
 
@@ -393,32 +470,30 @@ commandRouter.register(
 	'room.kick',
 	errorHandler('Room.Kick Command')(async (interaction, guild, user) => {
 		const channel = interaction.channel
-		const serverRooms = await roomsActions.getServerRooms(guild.id)
-		if (serverRooms.includes(channel.id)) {
-			const kick = await roomsActions.roomKick(
-				guild.id,
-				channel.id,
-				interaction.options.getUser('user'),
-			)
-			if (kick) {
-				await interaction.reply({
-					content:
-						'You have kicked ' + interaction.options.getUser('user') + ' from the room',
-					ephemeral: true,
-				})
-			} else {
-				await interaction.reply({
-					content:
-						'You must use this command in the room youd like to kick the user from',
-					ephemeral: true,
-				})
-			}
-		} else {
+		if (!(await roomsActions.getServerRooms(guild.id)).includes(channel.id)) {
 			await interaction.reply({
-				content: 'You must use this command in the room youd like to kick the user from',
+				content: 'You must use this command in a room chat',
 				ephemeral: true,
 			})
 		}
+
+		const kick = await roomsActions.roomKick(
+			guild.id,
+			channel.id,
+			interaction.options.getUser('user'),
+		)
+
+		if (!kick) {
+			await interaction.reply({
+				content: 'You must use this command in a room chat',
+				ephemeral: true,
+			})
+		}
+
+		await interaction.reply({
+			content: `You have kicked ${interaction.options.getUser('user')} from the room`,
+			ephemeral: true,
+		})
 	}),
 )
 
@@ -426,23 +501,21 @@ commandRouter.register(
 	'room.status',
 	errorHandler('Room.Status Command')(async (interaction, guild, user) => {
 		const channel = interaction.channel
-		const serverRooms = await roomsActions.getServerRooms(guild.id)
-		if (serverRooms.includes(channel.id)) {
-			const status = await roomsActions.getRoomStatus(guild, channel.id)
-			if (status.length > 0) {
-				await interaction.reply({
-					embeds: [status[0]],
-					components: status[1],
-				})
-			} else {
-				await interaction.reply({
-					content: 'You must use this command in the room you like to get the status of',
-					ephemeral: true,
-				})
-			}
+		if (!(await roomsActions.getServerRooms(guild.id)).includes(channel.id)) {
+			await interaction.reply({
+				content: 'You must use this command in a room chat',
+				ephemeral: true,
+			})
+		}
+		const status = await roomsActions.getRoomStatus(guild, channel.id)
+		if (status.length > 0) {
+			await interaction.reply({
+				embeds: [status[0]],
+				components: status[1],
+			})
 		} else {
 			await interaction.reply({
-				content: 'You must use this command in the room youd like to get the status of',
+				content: 'You must use this command in a room chat',
 				ephemeral: true,
 			})
 		}
@@ -454,17 +527,25 @@ commandRouter.register(
 	errorHandler('Send Command')(async (interaction, guild, user) => {
 		const receivingUser = interaction.options.getUser('user')
 		const amount = interaction.options.getInteger('amount')
-		if (await userActions.sendEcon(guild.id, user.id, receivingUser.id, amount)) {
+
+		if (amount <= 0) {
 			await interaction.reply({
-				content: `You sent ${amount} coins to ${receivingUser.username}`,
-				ephemeral: true,
-			})
-		} else {
-			await interaction.reply({
-				content: `You do not have enough money to send ${amount} coins`,
+				content: 'You must send a positive amount of coins!',
 				ephemeral: true,
 			})
 		}
+
+		if (!(await userActions.sendEcon(guild.id, user.id, receivingUser.id, amount))) {
+			await interaction.reply({
+				content: 'You do not have enough coins to send that amount!',
+				ephemeral: true,
+			})
+		}
+
+		await interaction.reply({
+			content: `Successfully sent ${amount} coins to ${receivingUser.username}!`,
+			ephemeral: true,
+		})
 	}),
 )
 
@@ -538,6 +619,8 @@ commandRouter.register(
 commandRouter.register(
 	'config.badge',
 	errorHandler('Config.Badge Command')(async (interaction, guild, user) => {
+		await interaction.deferReply({ ephemeral: true })
+
 		await userActions.updateUserBadges(
 			guild.id,
 			String(interaction.options.getUser('user').id),
@@ -558,7 +641,7 @@ commandRouter.register(
 
 		const file = interaction.options.getAttachment('image')
 		const name = interaction.options.getString('name')
-		const type = interaction.options.getString('type').value
+		const type = interaction.options.getString('type')
 
 		// Get the target channel for image hosting
 		const imageChannel = await interaction.client.channels.fetch(
@@ -573,11 +656,10 @@ commandRouter.register(
 		const imageUrl = message.attachments.first()?.url
 
 		if (!imageUrl) {
-			await interaction.editReply({
-				content: 'Failed to upload image',
-				ephemeral: true,
+			throw createCommandError('Failed To Upload Image', {
+				userMessage: `Failed To Upload Image`,
+				severity: 'error',
 			})
-			return
 		}
 
 		let data =
@@ -585,21 +667,18 @@ commandRouter.register(
 				? await guildActions.getServerBadges(guild.id)
 				: await guildActions.getServerProfiles(guild.id)
 
-		for (const key in data) {
-			if (data[key] === name) {
+		for (const [key] of Object.entries(data.badges)) {
+			if (key === name) {
 				await interaction.editReply({
-					content: `A ${type} with that name already exists`,
+					content: `A Image With That Name Already Exists`,
 					ephemeral: true,
 				})
-				return
 			}
 		}
 
 		data[name] = imageUrl
 
-		await guildActions.updateServerConfig(guild.id, {
-			[type]: data,
-		})
+		await guildActions.updateServerConfig(guild.id, { [type]: data })
 
 		await interaction.editReply({
 			content: `Image uploaded`,
