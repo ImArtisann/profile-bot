@@ -45,24 +45,28 @@ class GuildClass {
 	 * Initialize the class with the redis client
 	 * @param {import('ioredis').Redis} client Redis client instance
 	 */
-	initialize = errorHandler('Initializing guild actions')(async (client) => {
+	async initialize(client) {
 		this.client = client
-	})
+	}
 
 	/**
 	 * When the bot joins the server create the entry in the database for the servers config
 	 * and create a db for all the users that are in that server
 	 * @param {import('discord.js').Guild} guild
 	 */
-	createServer = errorHandler('Create Server Guild Actions')(async (guild) => {
-		await this.client.set(`${guild.id}:config`, JSON.stringify(this.guildData))
-		let members = await guild.members.fetch()
-		for (const [memberId, member] of members) {
-			if (!member.user.bot) {
-				await this.addMember(guild.id, memberId)
+	createServer = async (guild) => {
+		try {
+			await this.client.set(`${guild.id}:config`, JSON.stringify(this.guildData))
+			let members = await guild.members.fetch()
+			for (const [memberId, member] of members) {
+				if (!member.user.bot) {
+					await this.addMember(guild.id, memberId)
+				}
 			}
+		} catch (error) {
+			console.error('Create Server Guild Actions Error:', error)
 		}
-	})
+	}
 
 	/**
 	 * Add a user to the servers db
@@ -70,169 +74,213 @@ class GuildClass {
 	 * @param {String|import('discord.js').Snowflake} userId
 	 * @returns {Promise<void>}
 	 */
-	addMember = errorHandler('Add Member Guild Actions')(async (guildId, userId) => {
-		await this.client.hset(`${guildId}:users`, userId, JSON.stringify(this.userData))
-	})
+	addMember = async (guildId, userId) => {
+		try {
+			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(this.userData))
+		} catch (e) {
+			console.log(`Error in addMember: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the servers rent per day in coins for a private VC
 	 * @param {String} guildId
 	 * @returns {Promise<number>}
 	 */
-	getServerRent = errorHandler('Get Server Rent Guild Actions')(async (guildId) => {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.roomRent
-	})
+	getServerRent = async (guildId) => {
+		try {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.roomRent
+		} catch (e) {
+			console.log(`Error in getServerRent: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the servers econ rate for each min in a tracked VC
 	 * @param {String} guildId
 	 * @returns {Promise<[]>} - 0 - messages, 1 - VCMins
 	 */
-	getServerRate = errorHandler('Get Server Rate Guild Actions')(async (guildId) => {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.econRate
-	})
+	getServerRate = async (guildId) => {
+		try {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.econRate
+		} catch (e) {
+			console.log(`Error in getServerRate: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the servers experience rate [Messages, VCMins]
 	 * @param {String} guildId
 	 * @returns {Promise<number[]>}
 	 */
-	getServerExperienceRate = errorHandler('Get Server Exp Rate Guild Actions')(
-		async (guildId) => {
+	getServerExperienceRate = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.experienceRate
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerExperienceRate: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the tracked VC channel ids where people can earn econ in
 	 * @param {String} guildId
 	 * @returns {Promise<[]>}
 	 */
-	getServerTracked = errorHandler('Get Server Tracked Guild Actions')(async (guildId) => {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.trackedChannelsIds
-	})
+	getServerTracked = async (guildId) => {
+		try {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.trackedChannelsIds
+		} catch (e) {
+			console.log(`Error in getServerTracked: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the servers shop
 	 * @param {String} guildId
 	 * @returns {Promise<[]>}
 	 */
-	getServerShop = errorHandler('Get Server Shop Guild Actions')(async (guildId) => {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.serverShop
-	})
+	getServerShop = async (guildId) => {
+		try {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.serverShop
+		} catch (e) {
+			console.log(`Error in getServerShop: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server log channel where it tracks the vc and econ transfers
 	 * @param {String} guildId
 	 * @returns {Promise<string>}
 	 */
-	getServerLogChannel = errorHandler('Get Server Log Channel Guild Actions')(
-		async (guildId) => {
+	getServerLogChannel = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.logChannelId
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerLogChannel: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server ticket channel
 	 * @param guildId{String}
 	 * @returns {Promise<string>}
 	 */
-	getServerTicketChannel = errorHandler('Get Server Ticket Channel Guild Actions')(
-		async (guildId) => {
+	getServerTicketChannel = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.ticketChannelId
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerTicketChannel: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server config channel id
 	 * @param guildId{String}
 	 * @returns {Promise<string>}
 	 */
-	getServerConfigChannel = errorHandler('Get Server Config Channel Guild Actions')(
-		async (guildId) => {
+	getServerConfigChannel = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.configChannelId
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerConfigChannel: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server welcome channel id
 	 * @param guildId{String}
 	 * @returns {Promise<string>}
 	 */
-	getServerWelcomeChannel = errorHandler('Get Server Welcome Channel Guild Actions')(
-		async (guildId) => {
+	getServerWelcomeChannel = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.welcomeChannelId
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerWelcomeChannel: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the names of the server badges
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<string[]>} - An array of badge names
 	 */
-	getServerBadgesNames = errorHandler('Get Server Badges Names Guild Actions')(
-		async (guildId) => {
+	getServerBadgesNames = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			let names = []
 			for (const [key] of Object.entries(data.badges)) {
 				names.push(key)
 			}
 			return names
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerBadgesNames: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server badges
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<Object>} - The badges object
 	 */
-	getServerBadges = errorHandler('Get Server Badges Guild Actions')(async (guildId) => {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.badges
-	})
+	getServerBadges = async (guildId) => {
+		try {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.badges
+		} catch (e) {
+			console.log(`Error in getServerBadges: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server profiles
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<Object>} - The profiles object
 	 */
-	getServerProfiles = errorHandler('Get Server Profiles Guild Actions')(
-		async (guildId) => {
+	getServerProfiles = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.profiles
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerProfiles: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the server admin roles IDs
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<string[]>} - An array of admin roles IDs
 	 */
-	getServerAdminRole = errorHandler('Get Server Admin Role Guild Actions')(
-		async (guildId) => {
+	getServerAdminRole = async (guildId) => {
+		try {
 			const data = JSON.parse(await this.client.get(`${guildId}:config`))
 			return data.adminRolesId
-		},
-	)
+		} catch (e) {
+			console.log(`Error in getServerAdminRole: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the room category ID where the rooms are created
 	 * @param {String} guildId - The ID of the guild
 	 * @returns {Promise<string>} - The room category ID
 	 */
-	getRoomCategory = errorHandler('Get Room Category Guild Actions')(async (guildId) => {
-		const data = JSON.parse(await this.client.get(`${guildId}:config`))
-		return data.roomCata
-	})
+	getRoomCategory = async (guildId) => {
+		try {
+			const data = JSON.parse(await this.client.get(`${guildId}:config`))
+			return data.roomCata
+		} catch (e) {
+			console.log(`Error in getRoomCategory: ${e}`)
+		}
+	}
 
 	/**
 	 * update the server config
@@ -255,15 +303,17 @@ class GuildClass {
 	 * @param {string} [data.roomCata] - the room category id where the rooms are created
 	 * @returns {Promise<void>}
 	 */
-	updateServerConfig = errorHandler('Update Server Config Guild Actions')(
-		async (guildId, data) => {
+	updateServerConfig = async (guildId, data) => {
+		try {
 			let config = JSON.parse(await this.client.get(`${guildId}:config`))
 			for (const key in data) {
 				config[key] = data[key]
 			}
 			await this.client.set(`${guildId}:config`, JSON.stringify(config))
-		},
-	)
+		} catch (e) {
+			console.log(`Error updating server config: ${e}`)
+		}
+	}
 
 	/**
 	 * add a private channel to a user and to the server
@@ -279,8 +329,8 @@ class GuildClass {
 	 * @param {number} roomInfo.roomBalance - The room's balance
 	 * @returns {Promise<void>}
 	 */
-	addPrivateChannel = errorHandler('Add Private Channel Guild Actions')(
-		async (guildId, userId, channelId, roomInfo) => {
+	addPrivateChannel = async (guildId, userId, channelId, roomInfo) => {
+		try {
 			let data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			data.privateChannels.push(channelId)
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
@@ -289,16 +339,26 @@ class GuildClass {
 				channelId,
 				JSON.stringify(roomInfo),
 			)
-		},
-	)
+		} catch (e) {
+			console.log(`Error adding a private channel: ${e}`)
+		}
+	}
 
-	addTrackedChannel = errorHandler('Add Tracked Channel Guild Actions')(
-		async (guildId, channelId) => {
+	/**
+	 * Adds a new channel ID to the list of tracked channels for the specified guild.
+	 * @param {string} guildId - The ID of the guild.
+	 * @param {string} channelId - The ID of the channel to add to the tracked channels list.
+	 * @returns {Promise<void>} - A Promise that resolves when the channel has been added.
+	 */
+	addTrackedChannel = async (guildId, channelId) => {
+		try {
 			let data = JSON.parse(await this.client.get(`${guildId}:config`))
 			data.trackedChannelsIds.push(channelId)
 			await this.client.set(`${guildId}:config`, JSON.stringify(data))
-		},
-	)
+		} catch (e) {
+			console.log(`Error adding a tracked channel: ${e}`)
+		}
+	}
 
 	/**
 	 * Retrieves the server leaderboard for the specified guild.
@@ -307,8 +367,8 @@ class GuildClass {
 	 *                                 Possible values: 'econ', 'messages', 'hoursVC'.
 	 * @returns {Promise<Object[]>} - An array of user objects representing the leaderboard.
 	 */
-	getServerLeaderboard = errorHandler('Get Server Leaderboard Guild Actions')(
-		async (guildId, type = 'econ') => {
+	getServerLeaderboard = async (guildId, type = 'econ') => {
+		try {
 			const data = await this.client.hgetall(`${guildId}:users`)
 			const leaderboard = []
 			for (const userId in data) {
@@ -331,8 +391,10 @@ class GuildClass {
 				}
 			}
 			return leaderboard.sort((a, b) => b[type] - a[type]).slice(0, 10)
-		},
-	)
+		} catch (e) {
+			console.log(`Error getting server leaderboard: ${e}`)
+		}
+	}
 }
 
 export const guildActions = new GuildClass()

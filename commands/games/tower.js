@@ -4,12 +4,12 @@ import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('wheel')
-		.setDescription('spin the wheel')
+		.setName('tower')
+		.setDescription('can you climb the tower?')
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName('play')
-				.setDescription('spin the wheel')
+				.setDescription('Play a game of tower')
 				.addNumberOption((option) =>
 					option
 						.setName('bet')
@@ -19,7 +19,7 @@ export default {
 				),
 		)
 		.addSubcommand((subcommand) =>
-			subcommand.setName('leave').setDescription('Leave the wheel game'),
+			subcommand.setName('leave').setDescription('Leave the tower game'),
 		),
 	async execute(interaction) {
 		await commandRouter.handle(interaction)

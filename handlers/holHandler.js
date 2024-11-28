@@ -6,7 +6,7 @@ import Canvas from '@napi-rs/canvas'
 import { errorHandler } from './errorHandler.js'
 import { embedHelper } from '../classes/embedHelper.js'
 import { actionHelper } from '../classes/actionsHelper.js'
-import { AttachmentBuilder } from 'discord.js'
+import { AttachmentBuilder, ChatInputCommandInteraction } from 'discord.js'
 import { creatorWorker } from '../images/creator.js'
 import { userActions } from '../actions/userActions.js'
 
@@ -17,7 +17,7 @@ class HighOrLower {
 	constructor() {
 		this.cards = [...fs.readdirSync(path.join(foldersPath, '/playing_cards'))]
 		this.table = path.join(foldersPath, '/blackjack_table/table.jpg')
-		this.decks = 1
+		this.decks = 4
 		this.games = new Map()
 	}
 
@@ -63,7 +63,7 @@ class HighOrLower {
 	 * Shuffles the provided deck of playing cards.
 	 *
 	 * @param {string[]} deck - An array of playing card strings in the format "value_suit".
-	 * @returns {string[]} The shuffled deck of playing cards.
+	 * @returns {Promise<string[]>} The shuffled deck of playing cards.
 	 */
 	async shuffleDeck(deck) {
 		try {
@@ -88,10 +88,10 @@ class HighOrLower {
 			const value = card.split('_')[0]
 			const valueMap = {
 				10: 10,
-				J: 11,
-				Q: 12,
-				K: 13,
-				A: 1,
+				jack: 11,
+				queen: 12,
+				king: 13,
+				ace: 1,
 			}
 			return valueMap[value] || parseInt(value)
 		} catch (e) {
@@ -137,32 +137,15 @@ class HighOrLower {
 	async handleHit(userId, interaction, choice) {
 		try {
 			let gameState = this.games.get(userId)
-			// Store previous card before drawing new one
 			gameState.previousCard = gameState.card
-			// Draw new card
 			gameState.card = gameState.deck.pop()
-			// Set choice BEFORE calculating percentages
 			gameState.choice = choice
-			// Calculate new percentages based on new card and remaining deck
-			const currentValue = this.getCardValue(gameState.card)
-			const remainingCards = gameState.deck.length
-
-			const higherCards = gameState.deck.filter(
-				(c) => this.getCardValue(c) > currentValue,
-			).length
-			const lowerCards = gameState.deck.filter(
-				(c) => this.getCardValue(c) < currentValue,
-			).length
-
-			// Calculate true percentages based on remaining cards
-			gameState.percent = {
-				higher: Math.floor((higherCards / remainingCards) * 100) || 0,
-				lower: Math.floor((lowerCards / remainingCards) * 100) || 0,
-			}
+			gameState.percent = this.calculatePercentage(gameState.card, gameState.deck)
 
 			const result = await this.callWorker(userId, 'hol', {
 				gameState,
 			})
+
 			gameState.image = result.image
 			this.games.set(userId, gameState)
 			await this.updateMessage(userId, interaction)
@@ -196,7 +179,17 @@ class HighOrLower {
 	 */
 	async handlePlayAgain(userId, interaction) {
 		try {
-			await this.updateMessage(userId, interaction, true)
+			let userEcon = await userActions.getUserEcon(interaction.guild.id, userId)
+			let gameState = this.games.get(userId)
+			if (userEcon < gameState.bet) {
+				await interaction.reply({
+					content: `You don't have enough money to play again!`,
+					ephemeral: true,
+				})
+				return
+			}
+			await userActions.updateUserEcon(interaction.guild.id, userId, gameState.bet, false)
+			await this.startGame(userId, gameState.bet, userEcon - gameState.bet, interaction)
 		} catch (e) {
 			console.log(`Error handling playAgain HoL: ${e}`)
 		}
@@ -264,7 +257,7 @@ class HighOrLower {
 				components: actions,
 			}
 
-			if (interaction.deferred) {
+			if (interaction instanceof ChatInputCommandInteraction) {
 				await interaction.editReply(messageOptions)
 			} else {
 				await interaction.message.edit(messageOptions)
@@ -320,7 +313,7 @@ class HighOrLower {
 	/**
 	 * Calculates the percentage of cards in the deck that are higher or lower than the current card.
 	 *
-	 * @param {object} card - The current card being compared.
+	 * @param {string} card - The current card being compared.
 	 * @param {array} deck - The remaining cards in the deck.
 	 * @returns {object} An object containing the percentage for the 'higher' and 'lower' choices.
 	 */
@@ -354,16 +347,13 @@ class HighOrLower {
 			const prevReward = gameState.reward || 1
 
 			if (gameState.choice === 'higher') {
-				// If higher chance is 65%, add 0.35 to multiplier
-				const multiplier = 1 + (100 - gameState.percent.higher) / 100
-				gameState.reward = prevReward * multiplier
+				const multiplier = (100 - gameState.percent.higher) / 100 / 2
+				gameState.reward = prevReward + multiplier
 			} else if (gameState.choice === 'lower') {
-				const multiplier = 1 + (100 - gameState.percent.lower) / 100
-				gameState.reward = prevReward * multiplier
+				const multiplier = (100 - gameState.percent.lower) / 100 / 2
+				gameState.reward = prevReward + multiplier
 			}
 
-			// Round to 2 decimal places
-			gameState.reward = Math.max(1, Math.round(gameState.reward * 100) / 100)
 			this.games.set(userId, gameState)
 		} catch (e) {
 			console.log(`Error handling update reward HoL: ${e}`)
@@ -383,11 +373,14 @@ class HighOrLower {
 
 			const prevValue = this.getCardValue(gameState.previousCard)
 			const currentValue = this.getCardValue(gameState.card)
+			console.log(
+				`prevValue: ${prevValue}, currentValue: ${currentValue}, choice: ${gameState.choice}`,
+			)
 
 			if (gameState.choice === 'higher') {
-				return currentValue <= prevValue
+				return currentValue < prevValue
 			} else if (gameState.choice === 'lower') {
-				return currentValue >= prevValue
+				return currentValue > prevValue
 			}
 			return false
 		} catch (e) {
@@ -406,7 +399,9 @@ class HighOrLower {
 	async payUserWin(guildId, userId) {
 		try {
 			let gameState = this.games.get(userId)
-			const reward = Math.round(Number(gameState.bet * gameState.reward))
+			const reward = Math.round(
+				Number(gameState.bet * (gameState.reward?.toFixed(2) || 1)),
+			)
 			await userActions.updateUserEcon(guildId, userId, reward, true)
 		} catch (e) {
 			console.log(`Error handling pay user win HoL: ${e}`)
@@ -417,9 +412,9 @@ class HighOrLower {
 	 * Checks if the user has an active game.
 	 *
 	 * @param {string} userId - The ID of the user to check.
-	 * @returns {boolean} True if the user has an active game, false otherwise.
+	 * @returns {Promise<boolean>} True if the user has an active game, false otherwise.
 	 */
-	userHasGame(userId) {
+	async userHasGame(userId) {
 		return this.games.has(userId)
 	}
 }

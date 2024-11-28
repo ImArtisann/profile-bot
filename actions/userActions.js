@@ -50,8 +50,8 @@ class UserClass {
 	 * @param {number} amount - The amount of econ to send.
 	 * @returns {Promise<boolean>} - True if the econ was successfully sent, false if the user does not have enough econ.
 	 */
-	sendEcon = errorHandler('Send Econ User Actions')(
-		async (guildId, userId, recipientId, amount) => {
+	sendEcon = async (guildId, userId, recipientId, amount) => {
+		try {
 			const userEcon = await this.getUserEcon(guildId, userId)
 			if (userEcon < amount) {
 				return false
@@ -64,8 +64,10 @@ class UserClass {
 				)
 				return true
 			}
-		},
-	)
+		} catch (e) {
+			console.log(`Error while sending econ: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the user profile data for creating the image
@@ -82,11 +84,13 @@ class UserClass {
 	 * focus: (number),
 	 * class: (string)}>}
 	 */
-	getUserProfile = errorHandler('Get User Profile User Actions')(
-		async (guildId, userId) => {
+	getUserProfile = async (guildId, userId) => {
+		try {
 			return JSON.parse(await this.client.hget(`${guildId}:users`, userId))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while getting user profile: ${e}`)
+		}
+	}
 
 	/**
 	 * Creates a profile picture image for a user.
@@ -104,8 +108,8 @@ class UserClass {
 	 * @param {boolean} [test=false] - Whether this is a test run. If true, the image will be written to a file instead of returned.
 	 * @returns {Promise<{buffer: Buffer, name: string}|void>} - If `test` is false, returns an object with the generated image buffer and file name. If `test` is true, the image is written to a file and no value is returned.
 	 */
-	createProfilePic = errorHandler('Create Profile Pic User Actions')(
-		async (data, test = false) => {
+	createProfilePic = async (data, test = false) => {
+		try {
 			const userData = data.profileData
 			GlobalFonts.registerFromPath('images/fonts/Rustic-Printed-Regular.ttf', 'Rustic')
 			GlobalFonts.registerFromPath('images/fonts/Artegra-sans-extrabold.otf', 'Artegra')
@@ -403,37 +407,43 @@ class UserClass {
 						buffer: buffer,
 						name: 'profile.png',
 					}
-		},
-	)
+		} catch (e) {
+			console.log(`Error while creating profile pic: ${e}`)
+		}
+	}
 
-	callWorker = errorHandler('Call Worker User Actions')(async (data, timeout = 10000) => {
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				reject(new Error('Worker timeout'))
-			}, timeout)
+	callWorker = async (data, timeout = 10000) => {
+		try {
+			return new Promise((resolve, reject) => {
+				const timeoutId = setTimeout(() => {
+					reject(new Error('Worker timeout'))
+				}, timeout)
 
-			const handler = (response) => {
-				if (response.type === 'profile') {
-					clearTimeout(timeoutId)
-					creatorWorker.removeListener('message', handler)
-					resolve(response)
-				} else if (response.type === 'profile:error') {
-					clearTimeout(timeoutId)
-					creatorWorker.removeListener('message', handler)
-					reject(new Error(response.error))
+				const handler = (response) => {
+					if (response.type === 'profile') {
+						clearTimeout(timeoutId)
+						creatorWorker.removeListener('message', handler)
+						resolve(response)
+					} else if (response.type === 'profile:error') {
+						clearTimeout(timeoutId)
+						creatorWorker.removeListener('message', handler)
+						reject(new Error(response.error))
+					}
 				}
-			}
 
-			creatorWorker.on('message', handler)
+				creatorWorker.on('message', handler)
 
-			creatorWorker.postMessage({
-				data: {
-					...data,
-					type: 'profile',
-				},
+				creatorWorker.postMessage({
+					data: {
+						...data,
+						type: 'profile',
+					},
+				})
 			})
-		})
-	})
+		} catch (e) {
+			console.log(`Error while calling worker for profile pic generation: ${e}`)
+		}
+	}
 
 	/**
 	 * Set the user's main quest in the guild.
@@ -442,18 +452,24 @@ class UserClass {
 	 * @param {Object} quest - The quest object to set as the user's main quest.
 	 * @returns {Promise<void>}
 	 */
-	setUserQuest = errorHandler('Set User Quest User Actions')(
-		async (guildId, userId, quest) => {
+	setUserQuest = async (guildId, userId, quest) => {
+		try {
 			const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			data.mainQuest = quest
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while setting user quest: ${e}`)
+		}
+	}
 
-	getUserQuest = errorHandler('Get User Quest User Actions')(async (guildId, userId) => {
-		const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
-		return data.mainQuest
-	})
+	getUserQuest = async (guildId, userId) => {
+		try {
+			const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
+			return data.mainQuest
+		} catch (e) {
+			console.log(`Error while getting user quest: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the users econ in the guild
@@ -461,10 +477,14 @@ class UserClass {
 	 * @param {String} userId - user id
 	 * @returns {Promise<number>}
 	 */
-	getUserEcon = errorHandler('Get User Econ User Actions')(async (guildId, userId) => {
-		const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
-		return data.econ
-	})
+	getUserEcon = async (guildId, userId) => {
+		try {
+			const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
+			return data.econ
+		} catch (e) {
+			console.log(`Error while getting user econ: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the users private vc they own
@@ -472,12 +492,14 @@ class UserClass {
 	 * @param {String} userId - user id
 	 * @returns {Promise<[]>}
 	 */
-	getUserPrivateChannels = errorHandler('Get User Private Channels')(
-		async (guildId, userId) => {
+	getUserPrivateChannels = async (guildId, userId) => {
+		try {
 			const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			return data.privateChannels
-		},
-	)
+		} catch (e) {
+			console.log(`Error while getting user private channels: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the time the user joined the voice channel.
@@ -485,12 +507,14 @@ class UserClass {
 	 * @param {String} userId - The ID of the user.
 	 * @returns {Promise<String>} - The time the user joined the voice channel.
 	 */
-	getUserVCJoined = errorHandler('Get User VC Joined User Actions')(
-		async (guildId, userId) => {
+	getUserVCJoined = async (guildId, userId) => {
+		try {
 			const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			return data.vcJoined
-		},
-	)
+		} catch (e) {
+			console.log(`Error while getting user vc joined: ${e}`)
+		}
+	}
 
 	/**
 	 * Get the users vc hours
@@ -498,12 +522,14 @@ class UserClass {
 	 * @param {String} userId - user id
 	 * @returns {Promise<number>} - The number of hours the user has spent in voice channels
 	 */
-	getUserHoursVC = errorHandler('Get User HoursVC User actions')(
-		async (guildId, userId) => {
+	getUserHoursVC = async (guildId, userId) => {
+		try {
 			const data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			return data.hoursVC
-		},
-	)
+		} catch (e) {
+			console.log(`Error while getting user hours vc: ${e}`)
+		}
+	}
 
 	/**
 	 * Increment the users message count
@@ -511,13 +537,15 @@ class UserClass {
 	 * @param {String} userId - user id
 	 * @returns {Promise<void>}
 	 */
-	incrementUserMessageCount = errorHandler('Up Message Count User Actions')(
-		async (guildId, userId) => {
+	incrementUserMessageCount = async (guildId, userId) => {
+		try {
 			let userData = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			userData.messages++
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(userData))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while incrementing user message count: ${e}`)
+		}
+	}
 
 	/**
 	 * Update the users profile data
@@ -537,15 +565,17 @@ class UserClass {
 	 * @param {number} [data.econ] - user econ
 	 * @returns {Promise<void>}
 	 */
-	updateUserProfile = errorHandler('Update User Profile User Actions')(
-		async (guildId, userId, data) => {
+	updateUserProfile = async (guildId, userId, data) => {
+		try {
 			let userData = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			for (const key in data) {
 				userData[key] = data[key]
 			}
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(userData))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while updating user profile: ${e}`)
+		}
+	}
 
 	/**
 	 * Update the users vc hours
@@ -554,13 +584,15 @@ class UserClass {
 	 * @param {number} hours - amount of hours to add
 	 * @returns {Promise<void>}
 	 */
-	updateUserVCHours = errorHandler('Update User VC Hours User Actions')(
-		async (guildId, userId, hours) => {
+	updateUserVCHours = async (guildId, userId, hours) => {
+		try {
 			let userData = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			userData.hoursVC += hours
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(userData))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while updating user vc hours: ${e}`)
+		}
+	}
 
 	/**
 	 * Update a users econ either add or remove econ
@@ -570,13 +602,15 @@ class UserClass {
 	 * @param {Boolean} add - default is true
 	 * @returns {Promise<void>}
 	 */
-	updateUserEcon = errorHandler('Update User Econ User Actions')(
-		async (guildId, userId, econ, add = true) => {
+	updateUserEcon = async (guildId, userId, econ, add = true) => {
+		try {
 			let data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			data.econ = add ? data.econ + econ : data.econ - econ
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while updating user econ: ${e}`)
+		}
+	}
 
 	/**
 	 * Update the user's badges in the guild
@@ -586,23 +620,27 @@ class UserClass {
 	 * @param {Boolean} [add=true] - Whether to add or remove the badges
 	 * @returns {Promise<void>}
 	 */
-	updateUserBadges = errorHandler('Update User Badges User Actions')(
-		async (guildId, userId, badges, add = true) => {
+	updateUserBadges = async (guildId, userId, badges, add = true) => {
+		try {
 			let data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			add
 				? data.badges.push(badges)
 				: (data.badges = data.badges.filter((badge) => !badges.includes(badge)))
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while updating user badges: ${e}`)
+		}
+	}
 
-	updateUserPrivateChannels = errorHandler('Update User Private Channels User Actions')(
-		async (guildId, userId, privateChannel) => {
+	updateUserPrivateChannels = async (guildId, userId, privateChannel) => {
+		try {
 			let data = JSON.parse(await this.client.hget(`${guildId}:users`, userId))
 			data.privateChannels.push(privateChannel)
 			await this.client.hset(`${guildId}:users`, userId, JSON.stringify(data))
-		},
-	)
+		} catch (e) {
+			console.log(`Error while updating user private channels: ${e}`)
+		}
+	}
 }
 
 export const userActions = new UserClass()

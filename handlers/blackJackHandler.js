@@ -7,7 +7,7 @@ import { embedHelper } from '../classes/embedHelper.js'
 import { actionHelper } from '../classes/actionsHelper.js'
 import { userActions } from '../actions/userActions.js'
 import { creatorWorker } from '../images/creator.js'
-import { AttachmentBuilder } from 'discord.js'
+import { AttachmentBuilder, ChatInputCommandInteraction } from 'discord.js'
 import { errorHandler } from './errorHandler.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -443,7 +443,7 @@ class BlackJackHandler {
 				components: actions,
 			}
 
-			if (interaction.deferred) {
+			if (interaction instanceof ChatInputCommandInteraction) {
 				await interaction.editReply(messageOptions)
 			} else {
 				await interaction.message.edit(messageOptions)
@@ -627,9 +627,9 @@ class BlackJackHandler {
 	/**
 	 * Checks if the specified user has an active game.
 	 * @param {string} userId - The ID of the user to check.
-	 * @returns {boolean} True if the user has an active game, false otherwise.
+	 * @returns {Promise<boolean>} True if the user has an active game, false otherwise.
 	 */
-	userHasGame(userId) {
+	async userHasGame(userId) {
 		return this.games.has(userId)
 	}
 

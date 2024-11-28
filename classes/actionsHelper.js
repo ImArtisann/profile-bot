@@ -161,11 +161,10 @@ class ActionHelper {
 	 * @param {string} userId - The ID of the user playing the game.
 	 * @param {string[]} revealed - An array of revealed square positions in the format `"x_y"`.
 	 * @param {string[]} mines - An array of mine positions in the format `"x_y"`.
-	 * @param {Object} numbers - An object mapping revealed square positions to the number of adjacent mines.
 	 * @param {boolean} [gameOver=false] - Whether the game is over.
 	 * @returns {ActionRowBuilder[]} - An array of action row builders containing the game buttons.
 	 */
-	createMineSweeperActions(userId, revealed, mines, numbers, gameOver = false) {
+	createMineSweeperActions(userId, revealed, mines, gameOver = false) {
 		try {
 			let buttons = []
 
@@ -173,15 +172,11 @@ class ActionHelper {
 				for (let j = 0; j < 5; j++) {
 					const position = `${i}_${j}`
 					if (revealed.includes(position)) {
-						// Change style and label based on what was revealed
-						let style = ButtonStyle.Secondary // Default for revealed safe squares
-						let label = numbers[position] || '0' // Show number if it exists
-
+						let style = ButtonStyle.Secondary
+						let label = '✓'
 						if (mines.includes(position)) {
 							style = ButtonStyle.Danger
 							label = '💣'
-						} else if (numbers[position] === 0) {
-							label = ' ' // Empty space for zero
 						}
 
 						buttons.push(
@@ -192,29 +187,24 @@ class ActionHelper {
 								.setDisabled(true),
 						)
 					} else {
-						buttons.push(
-							new ButtonBuilder()
-								.setCustomId(`MS:Reveal_${i}_${j}:${userId}`)
-								.setLabel('?')
-								.setStyle(ButtonStyle.Primary),
-						)
+						if (gameOver) {
+							buttons.push(
+								new ButtonBuilder()
+									.setCustomId(`MS:Reveal_${i}_${j}:${userId}`)
+									.setLabel('?')
+									.setStyle(ButtonStyle.Primary)
+									.setDisabled(true),
+							)
+						} else {
+							buttons.push(
+								new ButtonBuilder()
+									.setCustomId(`MS:Reveal_${i}_${j}:${userId}`)
+									.setLabel('?')
+									.setStyle(ButtonStyle.Primary),
+							)
+						}
 					}
 				}
-			}
-
-			if (gameOver) {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`MS:PlayAgain:${userId}`)
-							.setLabel('Play Again')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`MS:Leave:${userId}`)
-							.setLabel('Leave')
-							.setStyle(ButtonStyle.Danger),
-					),
-				)
 			}
 
 			// Group buttons into rows of 5
@@ -225,6 +215,122 @@ class ActionHelper {
 			return buttons
 		} catch (e) {
 			console.log(`Error creating minesweeper actions: ${e}`)
+		}
+	}
+
+	/**
+	 * Creates the action buttons for a race game.
+	 * @param {string} userId - The ID of the user.
+	 * @param {boolean} [gameOver=false] - Indicates whether the game is over.
+	 * @returns {ActionRowBuilder[]} - An array of action row builders containing the race buttons.
+	 */
+	createRaceActions(userId, gameOver = false) {
+		try {
+			let buttons = []
+			if (!gameOver) {
+				buttons.push(
+					new ActionRowBuilder().addComponents(
+						new ButtonBuilder()
+							.setCustomId(`Race:Horse_1:${userId}`)
+							.setLabel('Horse 1')
+							.setStyle(ButtonStyle.Primary),
+						new ButtonBuilder()
+							.setCustomId(`Race:Horse_2:${userId}`)
+							.setLabel('Horse 2')
+							.setStyle(ButtonStyle.Primary),
+						new ButtonBuilder()
+							.setCustomId(`Race:Horse_3:${userId}`)
+							.setLabel('Horse 3')
+							.setStyle(ButtonStyle.Primary),
+						new ButtonBuilder()
+							.setCustomId(`Race:Horse_4:${userId}`)
+							.setLabel('Horse 4')
+							.setStyle(ButtonStyle.Primary),
+					),
+				)
+			} else {
+				buttons.push(
+					new ActionRowBuilder().addComponents(
+						new ButtonBuilder()
+							.setCustomId(`Race:PlayAgain:${userId}`)
+							.setLabel('Play Again')
+							.setStyle(ButtonStyle.Primary),
+						new ButtonBuilder()
+							.setCustomId(`Race:Leave:${userId}`)
+							.setLabel('Leave')
+							.setStyle(ButtonStyle.Danger),
+					),
+				)
+			}
+			return buttons
+		} catch (e) {
+			console.log(`Error creating race actions: ${e}`)
+		}
+	}
+
+	createTowerActions(userId, mode, revealed, mines, gameOver = false) {
+		try {
+			let buttons = []
+			if (!gameOver) {
+			} else {
+			}
+			return buttons
+		} catch (e) {
+			console.log(`Error creating tower actions: ${e}`)
+		}
+	}
+
+	createVideoPokerActions(userId, kept, gameOver = false) {
+		try {
+			let buttons = []
+			if (!gameOver) {
+				for (let i = 0; i < 5; i++) {
+					if (kept.includes(i + 1)) {
+						buttons.push(
+							new ButtonBuilder()
+								.setCustomId(`VP:Keep_${i}:${userId}`)
+								.setLabel(`Keep Card: ${i + 1}`)
+								.setStyle(ButtonStyle.Primary)
+								.setDisabled(true),
+						)
+					} else {
+						buttons.push(
+							new ButtonBuilder()
+								.setCustomId(`VP:Keep_${i}:${userId}`)
+								.setLabel(`Keep Card: ${i + 1}`)
+								.setStyle(ButtonStyle.Primary),
+						)
+					}
+				}
+				buttons.push(
+					new ButtonBuilder()
+						.setCustomId(`VP:Deal:${userId}`)
+						.setLabel(`Deal`)
+						.setStyle(ButtonStyle.Primary),
+				)
+			} else {
+				buttons.push(
+					new ButtonBuilder()
+						.setCustomId(`VP:PlayAgain:${userId}`)
+						.setLabel(`Play Again`)
+						.setStyle(ButtonStyle.Primary),
+					new ButtonBuilder()
+						.setCustomId(`VP:Leave:${userId}`)
+						.setLabel(`Leave`)
+						.setStyle(ButtonStyle.Danger),
+				)
+			}
+			if (buttons.length > 5) {
+				const rows = []
+				for (let i = 0; i < buttons.length; i += 5) {
+					rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)))
+				}
+				return rows
+			} else {
+				return buttons
+			}
+		} catch (e) {
+			console.log(`Error creating video poker actions: ${e}`)
 		}
 	}
 }

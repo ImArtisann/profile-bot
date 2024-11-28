@@ -1,10 +1,10 @@
 import 'dotenv/config'
-import { highOrLower } from './handlers/holHandler.js'
 import fs from 'fs'
+import { videoPoker } from './handlers/videoPokerHandler.js'
 
-async function test(guildId, userId) {
-	let image = await highOrLower.startGame('0', '100', '100')
-	fs.writeFileSync('test.png', image)
+async function test() {
+	let image = await videoPoker.startGame('0', '100', '100')
+	fs.writeFileSync('test.png', image.buffer)
 }
 
 await test()

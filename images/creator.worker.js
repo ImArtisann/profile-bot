@@ -4,6 +4,7 @@ import { userActions } from '../actions/userActions.js'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { highOrLower } from '../handlers/holHandler.js'
+import videoPoker from '../commands/games/videoPoker.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const foldersPath = __dirname
@@ -64,6 +65,23 @@ async function handleHoLImage(data) {
 	}
 }
 
+async function handlePokerImage(data) {
+	try {
+		const { gameState } = data
+		const imageData = await videoPoker.makeImage(gameState)
+		const buffer = Array.from(imageData.buffer)
+		return {
+			type: data.type,
+			image: {
+				buffer: buffer,
+				name: 'poker.png',
+			},
+		}
+	} catch (e) {
+		console.log(`Error handling poker image: ${e}`)
+	}
+}
+
 parentPort.on('message', async (message) => {
 	try {
 		const { data } = message
@@ -77,7 +95,9 @@ parentPort.on('message', async (message) => {
 		} else if (data.type.includes('hol')) {
 			const result = await handleHoLImage(data)
 			parentPort.postMessage(result)
-		} else if (data.type.includes('slots')) {
+		} else if (data.type.includes('videoPoker')) {
+			const result = await handleHoLImage(data)
+			parentPort.postMessage(result)
 		} else if (data.type.includes('wheel')) {
 		} else if (data.type.includes('roulette')) {
 		}

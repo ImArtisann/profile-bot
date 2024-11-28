@@ -12,6 +12,8 @@ import { guildActions } from '../actions/guildActions.js'
 import { roomsActions } from '../actions/roomsActions.js'
 import { AttachmentBuilder } from 'discord.js'
 import { highOrLower } from '../handlers/holHandler.js'
+import { mineSweeper } from '../handlers/mineSweeperHandler.js'
+import { raceHandler } from '../handlers/raceHandler.js'
 
 class CommandRouter {
 	constructor() {
@@ -199,7 +201,7 @@ commandRouter.register(
 commandRouter.register(
 	'blackjack',
 	errorHandler('Blackjack Command')(async (interaction, guild, user) => {
-		interaction.deferReply()
+		await interaction.deferReply({})
 		const bet = interaction.options.getNumber('bet')
 		let userEcon = await userActions.getUserEcon(guild.id, user.id)
 
@@ -292,9 +294,9 @@ commandRouter.register(
 )
 
 commandRouter.register(
-	'hol',
+	'hol.play',
 	errorHandler('Hol Command')(async (interaction, guild, user) => {
-		interaction.deferReply()
+		await interaction.deferReply({})
 		const bet = interaction.options.getNumber('bet')
 		let userEcon = await userActions.getUserEcon(guild.id, user.id)
 
@@ -318,20 +320,113 @@ commandRouter.register(
 )
 
 commandRouter.register(
-	'race',
-	errorHandler('Slots Command')(async (interaction) => {
-		await interaction.reply('Slots!', {
+	'race.play',
+	errorHandler('Race Play Command')(async (interaction, guild, user) => {
+		await interaction.deferReply({})
+		const bet = interaction.options.getNumber('bet')
+		let userEcon = await userActions.getUserEcon(guild.id, user.id)
+
+		if (userEcon < bet) {
+			await interaction.editReply({
+				content: "You don't have enough money to bet that much!",
+				ephemeral: true,
+			})
+		}
+
+		if (await raceHandler.userHasGame(user.id)) {
+			await interaction.editReply({
+				content: 'You already have a game in progress!',
+				ephemeral: true,
+			})
+		}
+		await userActions.updateUserEcon(guild.id, user.id, bet, false)
+		await raceHandler.startGame(user.id, bet, userEcon, interaction)
+	}),
+)
+
+commandRouter.register(
+	'race.leave',
+	errorHandler('Race Leave Command')(async (interaction, guild, user) => {
+		if (!(await raceHandler.userHasGame(user.id))) {
+			await interaction.editReply({
+				content: 'You dont have a game in progress!',
+				ephemeral: true,
+			})
+		}
+
+		await raceHandler.handleLeave(user.id, interaction)
+	}),
+)
+
+commandRouter.register(
+	'minesweeper',
+	errorHandler('Mine Sweeper Command')(async (interaction, guild, user) => {
+		await interaction.reply({
+			content: 'Use the subcommand /minesweeper play to play!',
 			ephemeral: true,
 		})
 	}),
 )
 
 commandRouter.register(
-	'minesweeper',
-	errorHandler('Slots Command')(async (interaction) => {
-		await interaction.reply('Slots!', {
-			ephemeral: true,
-		})
+	'minesweeper.play',
+	errorHandler('Mine Sweeper Play Command')(async (interaction, guild, user) => {
+		await interaction.deferReply({})
+		const bet = interaction.options.getNumber('bet')
+		const mode = interaction.options.getString('difficulty')
+		let userEcon = await userActions.getUserEcon(guild.id, user.id)
+
+		if (userEcon < bet) {
+			await interaction.editReply({
+				content: "You don't have enough money to bet that much!",
+				ephemeral: true,
+			})
+		}
+
+		if (await mineSweeper.userHasGame(user.id)) {
+			await interaction.editReply({
+				content: 'You already have a game in progress!',
+				ephemeral: true,
+			})
+		}
+		const options = {
+			easy: 5,
+			medium: 10,
+			hard: 15,
+		}
+
+		await userActions.updateUserEcon(guild.id, user.id, bet, false)
+		await mineSweeper.startGame(user.id, bet, userEcon, options[mode], interaction)
+	}),
+)
+
+commandRouter.register(
+	'minesweeper.cashout',
+	errorHandler('Mine Sweeper Cash Command')(async (interaction, guild, user) => {
+		await interaction.deferReply({ ephemeral: true })
+
+		if (!(await mineSweeper.userHasGame(user.id))) {
+			await interaction.editReply({
+				content: 'You dont have a game in progress!',
+				ephemeral: true,
+			})
+		}
+
+		await mineSweeper.handleCashOut(user.id, interaction)
+	}),
+)
+
+commandRouter.register(
+	'minesweeper.leave',
+	errorHandler('Mine Sweeper Leave Command')(async (interaction, guild, user) => {
+		await interaction.deferReply({})
+		if (!(await mineSweeper.userHasGame(user.id))) {
+			await interaction.editReply({
+				content: 'You dont have a game in progress!',
+				ephemeral: true,
+			})
+		}
+		await mineSweeper.handleLeave(user.id, interaction)
 	}),
 )
 

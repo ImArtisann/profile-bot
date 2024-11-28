@@ -240,16 +240,180 @@ class EmbedHelper {
 			if (highOrLower.checkUserLose(userId)) {
 				this.builder.addFields({ name: 'Result', value: 'You lost!', inline: false })
 			} else {
-				this.builder.addFields({
-					name: 'Result',
-					value: `You won! Reward: ${gameState.reward?.toFixed(2) || '1.00'}`,
-					inline: false,
-				})
+				this.builder.addFields(
+					{
+						name: 'Result',
+						value: `You won! Current Bet Multiplier: ${gameState.reward?.toFixed(2) || '1.00'}`,
+						inline: false,
+					},
+					{
+						name: 'Cash out Value',
+						value: `${Math.round((gameState.reward?.toFixed(2) || 1) * gameState.bet)}`,
+						inline: true,
+					},
+				)
 			}
 			this.builder.setImage('attachment://hol.png')
+			this.builder.setColor(0x0099ff)
 			return this.builder
 		} catch (e) {
 			console.log(`Error creating HoL EH: ${e}`)
+		}
+	}
+
+	mineSweeper(userId, userEcon, gameState) {
+		try {
+			this.builder.setTitle(`Minesweeper Game`)
+			this.builder.setDescription(
+				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+			)
+			let payout =
+				(gameState.mines.length / 15) *
+				gameState.reward *
+				((5 + gameState.reward) * (gameState.mode / 25))
+			this.builder.setFields([
+				{
+					name: 'Number of Mines',
+					value: gameState.mines.length.toString(),
+					inline: true,
+				},
+				{
+					name: 'Number Revealed',
+					value: gameState.revealed.length.toString(),
+					inline: true,
+				},
+				{
+					name: 'Reward (if cashout)',
+					value: Math.round(gameState.bet + gameState.bet * payout).toString(),
+					inline: true,
+				},
+			])
+			return this.builder
+		} catch (e) {
+			console.log(`Error creating Minesweeper EH: ${e}`)
+		}
+	}
+
+	race(userId, userEcon, gameState) {
+		try {
+			const embed = new EmbedBuilder()
+				.setTitle(`Bet on the horses!`)
+				.setDescription(
+					`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}
+          ${Number(gameState.choice) !== 0 ? `You Have bet on horse ${gameState.choice}` : ``}`,
+				)
+				.setColor(0x0099ff)
+
+			if (
+				gameState.horse1 === 10 ||
+				gameState.horse2 === 10 ||
+				gameState.horse3 === 10 ||
+				gameState.horse4 === 10
+			) {
+				const winningHorse = Object.entries(gameState).find(
+					([key, value]) => value === 10 && key !== 'bet',
+				)[0]
+				if (winningHorse.slice(-1) === gameState.choice) {
+					embed.addFields({
+						name: `Winner`,
+						value: `You won! ${gameState.bet * 4}`,
+						inline: false,
+					})
+				} else {
+					embed.addFields(
+						{
+							name: `Winner`,
+							value: `Horse ${winningHorse.slice(-1)}`,
+							inline: false,
+						},
+						{
+							name: `You lost!`,
+							value: `Horse ${gameState.choice}`,
+							inline: false,
+						},
+					)
+				}
+			} else {
+				// Add horse positions
+				for (const [key, value] of Object.entries(gameState)) {
+					if (key.includes('horse')) {
+						const string =
+							'.'.repeat(Number(value)) + '🐎' + '.'.repeat(9 - Number(value))
+						embed.addFields({
+							name: `${key.slice(0, -1)} ${key.slice(-1)}`,
+							value: string,
+							inline: false,
+						})
+					}
+				}
+			}
+
+			return embed
+		} catch (e) {
+			console.log(`Error creating Race EH: ${e}`)
+		}
+	}
+
+	videoPoker(userId, userEcon, gameState) {
+		try {
+			this.builder.setTitle(`Video Poker`)
+			this.builder.setDescription(
+				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+			)
+			this.builder.setFields([
+				{
+					name: 'Royal Flush',
+					value: '800x',
+					inline: true,
+				},
+				{
+					name: 'Straight Flush',
+					value: '60x',
+					inline: true,
+				},
+				{
+					name: 'Four of a Kind',
+					value: '22x',
+					inline: true,
+				},
+				{
+					name: 'Full House',
+					value: '9x',
+					inline: true,
+				},
+				{
+					name: 'Flush',
+					value: '6x',
+					inline: true,
+				},
+				{
+					name: 'Straight',
+					value: '4x',
+					inline: true,
+				},
+				{
+					name: 'Three of a Kind',
+					value: '3x',
+					inline: true,
+				},
+				{
+					name: 'Two Pair',
+					value: '2x',
+					inline: true,
+				},
+				{
+					name: 'Your Current Hand Value',
+					value: `${gameState.handValue}`,
+					inline: true,
+				},
+			])
+			this.builder.setColor(0x0099ff)
+
+			this.builder.setImage('attachment://poker.png')
+
+			return this.builder
+		} catch (e) {
+			console.log(`Error creating Video Poker EH: ${e}`)
 		}
 	}
 }
