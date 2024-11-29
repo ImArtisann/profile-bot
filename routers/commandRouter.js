@@ -81,7 +81,7 @@ commandRouter.register(
 commandRouter.register(
 	'profile',
 	errorHandler('Profile Command')(async (interaction, guild, user) => {
-		await interaction.deferReply({ ephemeral: true })
+		await interaction.deferReply({})
 
 		const targetUser = interaction.options.getUser('user')
 		user = targetUser ? targetUser : user
@@ -911,7 +911,7 @@ commandRouter.register(
 		await userActions.updateUserBadges(
 			guild.id,
 			String(interaction.options.getUser('user').id),
-			interaction.options.getString('badge'),
+			interaction.options.getString('name'),
 			interaction.options.getBoolean('add'),
 		)
 		interaction.editReply({
@@ -954,12 +954,14 @@ commandRouter.register(
 				? await guildActions.getServerBadges(guild.id)
 				: await guildActions.getServerProfiles(guild.id)
 
-		for (const [key] of Object.entries(data.badges)) {
-			if (key === name) {
-				await interaction.editReply({
-					content: `A Image With That Name Already Exists`,
-					ephemeral: true,
-				})
+		if (data.badges && Object.entries(data.badges).length > 0) {
+			for (const [key] of Object.entries(data.badges)) {
+				if (key === name) {
+					await interaction.editReply({
+						content: `A Image With That Name Already Exists`,
+						ephemeral: true,
+					})
+				}
 			}
 		}
 

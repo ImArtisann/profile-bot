@@ -42,6 +42,7 @@ async function main() {
 				? process.env.TEST_BOT_TOKEN
 				: process.env.BOT_TOKEN,
 		)
+
 		console.log('Bot is running!')
 	} catch (error) {
 		console.log('Login error:', error)
