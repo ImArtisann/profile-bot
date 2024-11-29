@@ -26,6 +26,8 @@ class RoomsClass {
 	 * @param {Array} roomData.members - The members in the room
 	 * @param {number} roomData.rentTime - The rent time for the room
 	 * @param {number} roomData.roomBalance - The room's balance
+	 * @param {string} [roomData.channel] - The channel ID of the room
+	 * @returns {Promise<boolean>} - Returns true if the room was successfully created, or false if the user does not have enough funds to rent the room.
 	 * @returns {Promise<boolean>} - Returns false if the user does not have enough funds to rent the room, or if the room data contains a `time` property.
 	 */
 	async createRoom(guild, userId, roomData) {
@@ -81,6 +83,7 @@ class RoomsClass {
 					})
 					.then(async (channel) => {
 						roomData.roomBalance -= rent
+						roomData.channel = channel.id
 						await this.client.hset(
 							`${guild.id}:privateChannels`,
 							channel.id,
@@ -94,30 +97,16 @@ class RoomsClass {
 							embeds: [embed],
 							components: actions,
 						})
-						await timerManager.createTimer({
+						let timer = await timerManager.createTimer(guild.id, {
 							name: `room:${channel.id}`,
 							userId: channel.id,
-							duration: roomData.rentTime * 86400000,
-							callback: async () => {
-								const room = await this.deductRent(guild.id, channel.id)
-								if (room.roomBalance > 0) {
-									await channel.send({
-										embeds: [
-											{
-												title: 'Daily Rent',
-												description: `Daily Rent deducted from your room balance. New Balance: ${room.roomBalance}`,
-												color: 0xff0000,
-											},
-										],
-									})
-									timerManager.resetTimer(channel.id)
-								} else {
-									await channel.delete()
-								}
-							},
+							duration: 1440,
+							callback: timerManager.getRoomRentCallback(guild),
 						})
-						return true
+						timer.start()
+						await timerManager.setTimerToRunning(guild.id, timer.id)
 					})
+				return true
 			}
 		} catch (e) {
 			console.log(`Error creating room: ${e}`)
@@ -157,9 +146,9 @@ class RoomsClass {
 			if (userEcon < amount) {
 				return false
 			}
-			room.roomBalance += userEcon
+			room.roomBalance += amount
 			await this.client.hset(`${guildId}:privateChannels`, roomId, JSON.stringify(room))
-			await userActions.updateUserEcon(guildId, userId, Number(userEcon - amount))
+			await userActions.updateUserEcon(guildId, userId, amount, false)
 			return true
 		} catch (e) {
 			console.log(`Error depositing to room balance ${e}`)
@@ -189,30 +178,35 @@ class RoomsClass {
 	async roomInvite(guild, roomId, userId) {
 		try {
 			let room = JSON.parse(await this.client.hget(`${guild.id}:privateChannels`, roomId))
-			if (room.roomInvite.includes(userId)) {
+			if (room.owner === userId) {
+				return false
+			}
+			if (room.members.includes(userId)) {
 				return false
 			} else {
 				room.members.push(userId)
-				await guild.channels.fetch(roomId).channel.edit({
-					permissionOverwrites: [
-						{
-							id: userId,
-							allow: [
-								PermissionsBitField.Flags.ViewChannel,
-								PermissionsBitField.Flags.Connect,
-								PermissionsBitField.Flags.Speak,
-								PermissionsBitField.Flags.Stream,
-								PermissionsBitField.Flags.SendMessages,
-								PermissionsBitField.Flags.UseApplicationCommands,
-								PermissionsBitField.Flags.UseExternalEmojis,
-								PermissionsBitField.Flags.EmbedLinks,
-								PermissionsBitField.Flags.AttachFiles,
-								PermissionsBitField.Flags.AddReactions,
-								PermissionsBitField.Flags.ReadMessageHistory,
-							],
-						},
-					],
-				})
+				await guild.channels.fetch(roomId).then((channel) =>
+					channel.edit({
+						permissionOverwrites: [
+							{
+								id: userId,
+								allow: [
+									PermissionsBitField.Flags.ViewChannel,
+									PermissionsBitField.Flags.Connect,
+									PermissionsBitField.Flags.Speak,
+									PermissionsBitField.Flags.Stream,
+									PermissionsBitField.Flags.SendMessages,
+									PermissionsBitField.Flags.UseApplicationCommands,
+									PermissionsBitField.Flags.UseExternalEmojis,
+									PermissionsBitField.Flags.EmbedLinks,
+									PermissionsBitField.Flags.AttachFiles,
+									PermissionsBitField.Flags.AddReactions,
+									PermissionsBitField.Flags.ReadMessageHistory,
+								],
+							},
+						],
+					}),
+				)
 				await this.client.hset(
 					`${guild.id}:privateChannels`,
 					roomId,
@@ -235,28 +229,32 @@ class RoomsClass {
 	async roomKick(guild, roomId, userId) {
 		try {
 			let room = JSON.parse(await this.client.hget(`${guild.id}:privateChannels`, roomId))
+			if (room.owner === userId) {
+				return false
+			}
 			if (room.members.includes(userId)) {
 				room.members = room.members.filter((member) => member !== userId)
-				await guild.channels.fetch(roomId).channel.edit({
-					permissionOverwrites: [
-						{
-							id: userId,
-							deny: [
-								PermissionsBitField.Flags.ViewChannel,
-								PermissionsBitField.Flags.Connect,
-								PermissionsBitField.Flags.Speak,
-								PermissionsBitField.Flags.Stream,
-								PermissionsBitField.Flags.SendMessages,
-								PermissionsBitField.Flags.UseApplicationCommands,
-								PermissionsBitField.Flags.UseExternalEmojis,
-								PermissionsBitField.Flags.EmbedLinks,
-								PermissionsBitField.Flags.AttachFiles,
-								PermissionsBitField.Flags.AddReactions,
-								PermissionsBitField.Flags.ReadMessageHistory,
-							],
-						},
-					],
-				})
+				await guild.channels.fetch(roomId).then((channel) =>
+					channel.edit({
+						permissionOverwrites: [
+							{
+								id: userId,
+								deny: [
+									PermissionsBitField.Flags.Connect,
+									PermissionsBitField.Flags.Speak,
+									PermissionsBitField.Flags.Stream,
+									PermissionsBitField.Flags.SendMessages,
+									PermissionsBitField.Flags.UseApplicationCommands,
+									PermissionsBitField.Flags.UseExternalEmojis,
+									PermissionsBitField.Flags.EmbedLinks,
+									PermissionsBitField.Flags.AttachFiles,
+									PermissionsBitField.Flags.AddReactions,
+									PermissionsBitField.Flags.ReadMessageHistory,
+								],
+							},
+						],
+					}),
+				)
 				await this.client.hset(
 					`${guild.id}:privateChannels`,
 					roomId,
@@ -264,6 +262,7 @@ class RoomsClass {
 				)
 				return true
 			} else {
+				console.log(`User ${userId} is not in room ${roomId}`)
 				return false
 			}
 		} catch (e) {
@@ -294,7 +293,7 @@ class RoomsClass {
 	async getRoomStatus(guild, roomId) {
 		try {
 			const embed = await embedHelper.roomStats(guild, roomId)
-			const actions = actionHelper.createRoomActions(guild, roomId)
+			const actions = await actionHelper.createRoomActions(guild, roomId)
 			return [embed, actions]
 		} catch (e) {
 			console.log(`Error getting room status: ${e}`)
@@ -312,6 +311,7 @@ class RoomsClass {
 			const room = JSON.parse(
 				await this.client.hget(`${guild.id}:privateChannels`, roomId),
 			)
+			console.log(`Room : ${room} and roomId: ${roomId}`)
 			return room.members
 		} catch (e) {
 			console.log('Error getting room members:', e)

@@ -8,7 +8,7 @@ export default {
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName('setup')
-				.setDescription('What channel do you want the VC logs to be sent to?')
+				.setDescription('Setup the bot for the server')
 				.addChannelOption((option) =>
 					option
 						.setName('logs')
@@ -143,6 +143,29 @@ export default {
 							{ name: 'badge', value: 'badges' },
 							{ name: 'profile', value: 'profiles' },
 						)
+						.setRequired(true),
+				),
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName('tracked')
+				.setDescription('Add more tracked channels for the bot')
+				.addChannelOption((option) =>
+					option
+						.setName('channel')
+						.setDescription('The channel you want to add to the tracked channels')
+						.addChannelTypes(ChannelType.GuildVoice)
+						.setRequired(true),
+				),
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName('admin')
+				.setDescription('add and admin role to the bot')
+				.addRoleOption((option) =>
+					option
+						.setName('role')
+						.setDescription('The admin role you want to add')
 						.setRequired(true),
 				),
 		),

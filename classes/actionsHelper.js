@@ -9,329 +9,295 @@ import {
 import { errorHandler } from '../handlers/errorHandler.js'
 
 class ActionHelper {
-	constructor() {}
+	static ButtonConfigs = {
+		PLAY_AGAIN: (userId, gameType) => ({
+			customId: `${gameType}:PlayAgain:${userId}`,
+			label: 'Play Again',
+			style: ButtonStyle.Primary,
+		}),
+		LEAVE: (userId, gameType) => ({
+			customId: `${gameType}:Leave:${userId}`,
+			label: 'Leave',
+			style: ButtonStyle.Danger,
+		}),
+	}
 
 	/**
-	 * Creates a set of action components (buttons and menus) for a room in a Discord guild.
+	 * Creates a button using the provided configuration
+	 * @param {Object} config - Button configuration object
+	 * @returns {ButtonBuilder} The created button
+	 */
+	createButton(config) {
+		return new ButtonBuilder()
+			.setCustomId(config.customId)
+			.setLabel(config.label)
+			.setStyle(config.style)
+			.setDisabled(config.disabled || false)
+	}
+
+	/**
+	 * Creates an action row with the provided components
+	 * @param {Array} components - Array of components to add to the row
+	 * @returns {ActionRowBuilder} The created action row
+	 */
+	createActionRow(components) {
+		return new ActionRowBuilder().addComponents(components)
+	}
+
+	/**
+	 * Wraps async operations with error handling
+	 * @param {Function} operation - The async operation to execute
+	 * @param {string} errorMessage - Error message prefix
+	 * @returns {Promise} Result of the operation
+	 */
+	async withErrorHandling(operation, errorMessage) {
+		try {
+			return await operation()
+		} catch (e) {
+			console.log(`${errorMessage}: ${e}`)
+			return []
+		}
+	}
+
+	/**
+	 * Creates game over buttons common to multiple games
+	 * @param {string} userId - The user ID
+	 * @param {string} gameType - The type of game (e.g., 'BJ', 'HOL')
+	 * @returns {Array<ActionRowBuilder>} Array of action rows with game over buttons
+	 */
+	createGameOverButtons(userId, gameType) {
+		return [
+			this.createActionRow([
+				this.createButton(ActionHelper.ButtonConfigs.PLAY_AGAIN(userId, gameType)),
+				this.createButton(ActionHelper.ButtonConfigs.LEAVE(userId, gameType)),
+			]),
+		]
+	}
+
+	/**
+	 * Creates a set of action components (buttons and menus) for a room in a Discord server.
 	 *
-	 * @param {Object} guild - The Discord guild the room belongs to.
+	 * @param {object} guild - The Discord guild the room belongs to.
 	 * @param {string} roomId - The ID of the room.
-	 * @returns {Promise<Array<import(discord.js).ActionRowBuilder>>} An array of action row builders containing the created components.
+	 * @returns {Promise<Array<import('discord.js').ActionRowBuilder>>} An array of action row builders containing the created components.
 	 */
 	async createRoomActions(guild, roomId) {
-		try {
-			let room = await roomsActions.getRoom(guild, roomId)
+		return this.withErrorHandling(async () => {
+			const room = await roomsActions.getRoom(guild, roomId)
 
-			const depositButton = new ActionRowBuilder().addComponents(
-				new ButtonBuilder()
-					.setCustomId(`Room:Deposit:${roomId}`)
-					.setLabel('Deposit')
-					.setStyle(ButtonStyle.Primary),
-			)
-
-			const inviteMenu = new ActionRowBuilder().addComponents(
-				new UserSelectMenuBuilder()
-					.setCustomId(`Room:Invite:${roomId}`)
-					.setPlaceholder('Select a member')
-					.setMinValues(1),
-			)
-
-			const kickMenu = new ActionRowBuilder().addComponents(
-				new StringSelectMenuBuilder()
-					.setCustomId('Kick')
-					.setPlaceholder('Remove a member')
-					.addOptions(
-						room.members.map((userId) => ({
-							label: guild.members.cache.get(userId).user.username,
-							value: userId,
-						})),
-					),
-			)
-
-			return [depositButton, inviteMenu, kickMenu]
-		} catch (e) {
-			console.log(`Error creating room actions: ${e}`)
-		}
+			return [
+				this.createActionRow([
+					this.createButton({
+						customId: `Room:Deposit:${roomId}`,
+						label: 'Deposit',
+						style: ButtonStyle.Primary,
+					}),
+				]),
+				this.createActionRow([
+					new UserSelectMenuBuilder()
+						.setCustomId(`Room:Invite:${roomId}`)
+						.setPlaceholder('Select a member')
+						.setMaxValues(guild.memberCount),
+				]),
+				this.createActionRow([
+					new StringSelectMenuBuilder()
+						.setCustomId(`Room:Kick:${roomId}`)
+						.setPlaceholder('Remove a member')
+						.addOptions(
+							room.members.map((userId) => ({
+								label: guild.members.cache.get(userId).user.username,
+								value: userId,
+							})),
+						)
+						.setMaxValues(room.members.length),
+				]),
+			]
+		}, 'Error creating room actions')
 	}
 
 	/**
-	 * Creates a set of action components (buttons and menus) for a BlackJack game.
+	 * Generates the action buttons for a BlackJack game based on the current game state.
 	 *
-	 * @param {string} userId - The ID of the user playing the BlackJack game.
+	 * @param {string} userId - The ID of the user playing the game.
 	 * @param {boolean} [gameOver=false] - Indicates whether the game is over.
-	 * @param {boolean} [firstHand=false] - Indicates whether this is the first hand of the game.
-	 * @returns {Array<import(discord.js).ActionRowBuilder>} An array of action row builders containing the created components.
+	 * @param {boolean} [firstHand=false] - Indicates whether it's the first hand of the game.
+	 * @returns {Promise<Array<import(discord.js).ActionRowBuilder>>} An array of action row builders containing the created components.
 	 */
 	createBlackJackActions(userId, gameOver = false, firstHand = false) {
-		try {
-			let buttons = []
+		return this.withErrorHandling(() => {
 			if (gameOver) {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`BJ:PlayAgain:${userId}`)
-							.setLabel('Play Again')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`BJ:Leave:${userId}`)
-							.setLabel('Leave')
-							.setStyle(ButtonStyle.Danger),
-					),
-				)
-			} else {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`BJ:Hit:${userId}`)
-							.setLabel('Hit')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`BJ:Stand:${userId}`)
-							.setLabel('Stand')
-							.setStyle(ButtonStyle.Primary),
-					),
-				)
-				if (firstHand) {
-					buttons.push(
-						new ActionRowBuilder().addComponents(
-							new ButtonBuilder()
-								.setCustomId(`BJ:DoubleDown:${userId}`)
-								.setLabel('Double Down')
-								.setStyle(ButtonStyle.Primary),
-						),
-					)
-				}
+				return this.createGameOverButtons(userId, 'BJ')
 			}
+
+			const buttons = [
+				this.createActionRow([
+					this.createButton({
+						customId: `BJ:Hit:${userId}`,
+						label: 'Hit',
+						style: ButtonStyle.Primary,
+					}),
+					this.createButton({
+						customId: `BJ:Stand:${userId}`,
+						label: 'Stand',
+						style: ButtonStyle.Primary,
+					}),
+				]),
+			]
+
+			if (firstHand) {
+				buttons.push(
+					this.createActionRow([
+						this.createButton({
+							customId: `BJ:DoubleDown:${userId}`,
+							label: 'Double Down',
+							style: ButtonStyle.Primary,
+						}),
+					]),
+				)
+			}
+
 			return buttons
-		} catch (e) {
-			console.log(`Error creating BlackJack actions: ${e}`)
-		}
+		}, 'Error creating BlackJack actions')
 	}
 
 	/**
-	 * Generates the action buttons for a House of Lords game based on the current game state.
+	 * Generates the action buttons for a "Higher or Lower" (HoL) game based on the current game state.
 	 *
 	 * @param {string} userId - The ID of the user playing the game.
 	 * @param {boolean} [gameOver=false] - Indicates whether the game is over.
-	 * @returns {Array<import(discord.js).ActionRowBuilder>} An array of action row builders containing the created components.
+	 * @returns {Promise<Array<import(discord.js).ActionRowBuilder>>} An array of action row builders containing the created components.
 	 */
 	createHoLActions(userId, gameOver = false) {
-		try {
-			let buttons = []
+		return this.withErrorHandling(() => {
 			if (gameOver) {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`HOL:PlayAgain:${userId}`)
-							.setLabel('Play Again')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`HOL:Leave:${userId}`)
-							.setLabel('Leave')
-							.setStyle(ButtonStyle.Danger),
-					),
-				)
-			} else {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`HOL:Lower:${userId}`)
-							.setLabel('Lower')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`HOL:Higher:${userId}`)
-							.setLabel('Higher')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`HOL:Cash:${userId}`)
-							.setLabel('Cash Out')
-							.setStyle(ButtonStyle.Primary),
-					),
-				)
+				return this.createGameOverButtons(userId, 'HOL')
 			}
-			return buttons
-		} catch (e) {
-			console.log(`Error creating HoL actions: ${e}`)
-		}
+
+			return [
+				this.createActionRow([
+					this.createButton({
+						customId: `HOL:Lower:${userId}`,
+						label: 'Lower',
+						style: ButtonStyle.Primary,
+					}),
+					this.createButton({
+						customId: `HOL:Higher:${userId}`,
+						label: 'Higher',
+						style: ButtonStyle.Primary,
+					}),
+					this.createButton({
+						customId: `HOL:Cash:${userId}`,
+						label: 'Cash Out',
+						style: ButtonStyle.Primary,
+					}),
+				]),
+			]
+		}, 'Error creating HoL actions')
 	}
 
 	/**
-	 * Generates the action buttons for a Minesweeper game based on the current game state.
+	 * Creates the action buttons for a Minesweeper game based on the current game state.
 	 *
 	 * @param {string} userId - The ID of the user playing the game.
-	 * @param {string[]} revealed - An array of revealed square positions in the format `"x_y"`.
+	 * @param {string[]} revealed - An array of revealed tile positions in the format `"x_y"`.
 	 * @param {string[]} mines - An array of mine positions in the format `"x_y"`.
-	 * @param {boolean} [gameOver=false] - Whether the game is over.
-	 * @returns {ActionRowBuilder[]} - An array of action row builders containing the game buttons.
+	 * @param {boolean} [gameOver=false] - Indicates whether the game is over.
+	 * @returns {Promise<Array<import(discord.js).ActionRowBuilder>>} An array of action row builders containing the Minesweeper buttons.
 	 */
 	createMineSweeperActions(userId, revealed, mines, gameOver = false) {
-		try {
-			let buttons = []
+		return this.withErrorHandling(() => {
+			const buttons = []
 
 			for (let i = 0; i < 5; i++) {
+				const rowButtons = []
 				for (let j = 0; j < 5; j++) {
 					const position = `${i}_${j}`
-					if (revealed.includes(position)) {
-						let style = ButtonStyle.Secondary
-						let label = '✓'
-						if (mines.includes(position)) {
-							style = ButtonStyle.Danger
-							label = '💣'
-						}
+					const isRevealed = revealed.includes(position)
+					const isMine = mines.includes(position)
 
-						buttons.push(
-							new ButtonBuilder()
-								.setCustomId(`MS:Reveal_${i}_${j}:${userId}`)
-								.setLabel(label)
-								.setStyle(style)
-								.setDisabled(true),
-						)
-					} else {
-						if (gameOver) {
-							buttons.push(
-								new ButtonBuilder()
-									.setCustomId(`MS:Reveal_${i}_${j}:${userId}`)
-									.setLabel('?')
-									.setStyle(ButtonStyle.Primary)
-									.setDisabled(true),
-							)
-						} else {
-							buttons.push(
-								new ButtonBuilder()
-									.setCustomId(`MS:Reveal_${i}_${j}:${userId}`)
-									.setLabel('?')
-									.setStyle(ButtonStyle.Primary),
-							)
-						}
-					}
+					rowButtons.push(
+						this.createButton({
+							customId: `MS:Reveal_${i}_${j}:${userId}`,
+							label: isRevealed ? (isMine ? '💣' : '✓') : '?',
+							style: isRevealed
+								? isMine
+									? ButtonStyle.Danger
+									: ButtonStyle.Secondary
+								: ButtonStyle.Primary,
+							disabled: isRevealed || gameOver,
+						}),
+					)
 				}
+				buttons.push(this.createActionRow(rowButtons))
 			}
 
-			// Group buttons into rows of 5
-			buttons = Array.from({ length: 5 }, (_, i) =>
-				new ActionRowBuilder().addComponents(buttons.slice(i * 5, (i + 1) * 5)),
-			)
-
 			return buttons
-		} catch (e) {
-			console.log(`Error creating minesweeper actions: ${e}`)
-		}
+		}, 'Error creating minesweeper actions')
 	}
 
 	/**
-	 * Creates the action buttons for a race game.
-	 * @param {string} userId - The ID of the user.
+	 * Creates the action buttons for a Race game based on the current game state.
+	 *
+	 * @param {string} userId - The ID of the user playing the game.
 	 * @param {boolean} [gameOver=false] - Indicates whether the game is over.
-	 * @returns {ActionRowBuilder[]} - An array of action row builders containing the race buttons.
+	 * @returns {Promise<Array<import(discord.js).ActionRowBuilder>>} An array of action row builders containing the Race buttons.
 	 */
-	createRaceActions(userId, gameOver = false) {
-		try {
-			let buttons = []
-			if (!gameOver) {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`Race:Horse_1:${userId}`)
-							.setLabel('Horse 1')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`Race:Horse_2:${userId}`)
-							.setLabel('Horse 2')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`Race:Horse_3:${userId}`)
-							.setLabel('Horse 3')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`Race:Horse_4:${userId}`)
-							.setLabel('Horse 4')
-							.setStyle(ButtonStyle.Primary),
-					),
-				)
-			} else {
-				buttons.push(
-					new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`Race:PlayAgain:${userId}`)
-							.setLabel('Play Again')
-							.setStyle(ButtonStyle.Primary),
-						new ButtonBuilder()
-							.setCustomId(`Race:Leave:${userId}`)
-							.setLabel('Leave')
-							.setStyle(ButtonStyle.Danger),
-					),
-				)
+	async createRaceActions(userId, gameOver = false) {
+		return this.withErrorHandling(() => {
+			if (gameOver) {
+				return this.createGameOverButtons(userId, 'Race')
 			}
-			return buttons
-		} catch (e) {
-			console.log(`Error creating race actions: ${e}`)
-		}
+
+			return [
+				this.createActionRow(
+					Array.from({ length: 4 }, (_, i) =>
+						this.createButton({
+							customId: `Race:Horse_${i + 1}:${userId}`,
+							label: `Horse ${i + 1}`,
+							style: ButtonStyle.Primary,
+						}),
+					),
+				),
+			]
+		}, 'Error creating race actions')
 	}
 
-	createTowerActions(userId, mode, revealed, mines, gameOver = false) {
-		try {
-			let buttons = []
-			if (!gameOver) {
-			} else {
+	/**
+	 * Creates the action buttons for a Video Poker game based on the current game state.
+	 *
+	 * @param {string} userId - The ID of the user playing the game.
+	 * @param {number[]} kept - An array of card indices that the user has chosen to keep.
+	 * @param {boolean} [gameOver=false] - Indicates whether the game is over.
+	 * @returns {Promise<Array<import(discord.js).ActionRowBuilder>>} An array of action row builders containing the Video Poker buttons.
+	 */
+	async createVideoPokerActions(userId, kept, gameOver = false) {
+		return this.withErrorHandling(() => {
+			if (gameOver) {
+				return this.createGameOverButtons(userId, 'VP')
 			}
-			return buttons
-		} catch (e) {
-			console.log(`Error creating tower actions: ${e}`)
-		}
-	}
 
-	createVideoPokerActions(userId, kept, gameOver = false) {
-		try {
-			let buttons = []
-			if (!gameOver) {
-				for (let i = 0; i < 5; i++) {
-					if (kept.includes(i + 1)) {
-						buttons.push(
-							new ButtonBuilder()
-								.setCustomId(`VP:Keep_${i}:${userId}`)
-								.setLabel(`Keep Card: ${i + 1}`)
-								.setStyle(ButtonStyle.Primary)
-								.setDisabled(true),
-						)
-					} else {
-						buttons.push(
-							new ButtonBuilder()
-								.setCustomId(`VP:Keep_${i}:${userId}`)
-								.setLabel(`Keep Card: ${i + 1}`)
-								.setStyle(ButtonStyle.Primary),
-						)
-					}
-				}
-				buttons.push(
-					new ButtonBuilder()
-						.setCustomId(`VP:Deal:${userId}`)
-						.setLabel(`Deal`)
-						.setStyle(ButtonStyle.Primary),
-				)
-			} else {
-				buttons.push(
-					new ButtonBuilder()
-						.setCustomId(`VP:PlayAgain:${userId}`)
-						.setLabel(`Play Again`)
-						.setStyle(ButtonStyle.Primary),
-					new ButtonBuilder()
-						.setCustomId(`VP:Leave:${userId}`)
-						.setLabel(`Leave`)
-						.setStyle(ButtonStyle.Danger),
-				)
-			}
-			if (buttons.length > 5) {
-				const rows = []
-				for (let i = 0; i < buttons.length; i += 5) {
-					rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)))
-				}
-				return rows
-			} else {
-				return buttons
-			}
-		} catch (e) {
-			console.log(`Error creating video poker actions: ${e}`)
-		}
+			const buttons = Array.from({ length: 5 }, (_, i) =>
+				this.createButton({
+					customId: `VP:Keep_${i}:${userId}`,
+					label: `Keep Card: ${i + 1}`,
+					style: ButtonStyle.Primary,
+					disabled: kept.includes(i + 1),
+				}),
+			)
+
+			buttons.push(
+				this.createButton({
+					customId: `VP:Deal:${userId}`,
+					label: 'Deal',
+					style: ButtonStyle.Primary,
+				}),
+			)
+
+			// Group buttons into rows of 5
+			return Array.from({ length: Math.ceil(buttons.length / 5) }, (_, i) =>
+				this.createActionRow(buttons.slice(i * 5, i + 5)),
+			)
+		}, 'Error creating video poker actions')
 	}
 }
 

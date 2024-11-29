@@ -7,6 +7,7 @@ import CommandRegister from './register/commandRegister.js'
 import { userActions } from './actions/userActions.js'
 import { roomsActions } from './actions/roomsActions.js'
 import { startWorker } from './images/creator.js'
+import { timerManager } from './classes/timerManager.js'
 
 async function main() {
 	const client = new Client({
@@ -25,6 +26,7 @@ async function main() {
 	await guildActions.initialize(connection)
 	await userActions.initialize(connection)
 	await roomsActions.initialize(connection)
+	await timerManager.initialize(connection)
 
 	await startWorker()
 	const commandHandler = new CommandRegister(client)

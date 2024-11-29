@@ -7,6 +7,8 @@ export const name = Events.GuildMemberAdd
 export const once = false
 
 export const execute = errorHandler('Event Member Joined')(async function (member) {
+	if (member.guild.id !== '1253016548080222261') return
+
 	const channel = member.guild.channels.cache.get('1253016548080222261')
 	const user = member.user
 	const image = await userActions.callWorker({

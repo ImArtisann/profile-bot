@@ -5,10 +5,6 @@ import { errorHandler } from '../handlers/errorHandler.js'
 import { highOrLower } from '../handlers/holHandler.js'
 
 class EmbedHelper {
-	constructor() {
-		this.builder = new EmbedBuilder()
-	}
-
 	/**
 	 * Generates a leaderboard embed for the specified type and data.
 	 *
@@ -20,19 +16,20 @@ class EmbedHelper {
 	 */
 	makeLeaderboard(type = 'econ', data) {
 		try {
-			this.builder.setTitle(`${type.toUpperCase()} Leaderboard`)
-			this.builder.setDescription(`Top 10 ${type} users`)
-			this.builder.setColor(0x0099ff)
+			const embed = new EmbedBuilder()
+				.setTitle(`${type.toUpperCase()} Leaderboard`)
+				.setDescription(`Top 10 ${type} users`)
+				.setColor(0x0099ff)
 			let rank = 1
 			for (const user of data) {
-				this.builder.addFields({
-					name: `#${rank} <@${user.userId}>`,
-					value: user.amount.toString(),
+				embed.addFields({
+					name: `#${rank} `,
+					value: `<@${user.userId}> ${user.amount} coins`,
 					inline: false,
 				})
 				rank++
 			}
-			return this.builder
+			return embed
 		} catch (e) {
 			console.log(`Error creating Leaderboard: ${e}`)
 		}
@@ -47,15 +44,17 @@ class EmbedHelper {
 	 */
 	makeQuest(quest, userId) {
 		try {
-			this.builder.setTitle(`<@${userId}> Quest`)
-			this.builder.setDescription(`${quest.description}`)
-			this.builder.setFields([
-				{ name: 'Name', value: quest.name, inline: false },
-				{ name: 'Deadline', value: quest.deadline, inline: false },
-				{ name: 'Reward', value: quest.reward, inline: false },
-			])
-			this.builder.setColor(0x0099ff)
-			return this.builder
+			const embed = new EmbedBuilder()
+				.setTitle(`Quest`)
+				.setDescription(`<@${userId}> Quest`)
+				.setFields([
+					{ name: 'Description', value: quest.description, inline: false },
+					{ name: 'Name', value: quest.name, inline: false },
+					{ name: 'Deadline', value: quest.deadline, inline: false },
+					{ name: 'Reward', value: quest.reward, inline: false },
+				])
+				.setColor(0x0099ff)
+			return embed
 		} catch (e) {
 			console.log(`Error creating Quest: ${e}`)
 		}
@@ -71,24 +70,25 @@ class EmbedHelper {
 	async roomStats(guild, roomId) {
 		try {
 			const room = await roomsActions.getRoom(guild, roomId)
-			this.builder.setTitle(`${room.name} Control Panel`)
-			this.builder.setFields(
-				{ name: 'Channel', value: `<#${room.channel}>`, inline: true },
-				{ name: 'Owner', value: `<@${room.owner}>`, inline: true },
-				{ name: 'Room Balance:', value: `${room.balance}`, inline: true },
-				{
-					name: 'Created At',
-					value: `<t:${Math.floor(room.timeStamp / 1000)}:f>`,
-					inline: true,
-				},
-				{
-					name: 'Members',
-					value: room.members.map((userId) => `<@${userId}>`).join(', '),
-					inline: false,
-				},
-			)
-			this.builder.setColor(0x0099ff)
-			return this.builder
+			const embed = new EmbedBuilder()
+				.setTitle(`${room.name} Control Panel`)
+				.setFields(
+					{ name: 'Channel', value: `<#${room.channel}>`, inline: true },
+					{ name: 'Owner', value: `<@${room.owner}>`, inline: true },
+					{ name: 'Room Balance:', value: `${room.roomBalance}`, inline: true },
+					{
+						name: 'Created At',
+						value: `<t:${Math.floor(room.createdAt / 1000)}:f>`,
+						inline: true,
+					},
+					{
+						name: 'Members',
+						value: room.members.map((userId) => `<@${userId}>`).join(', '),
+						inline: false,
+					},
+				)
+				.setColor(0x0099ff)
+			return embed
 		} catch (e) {
 			console.log(`Error creating room stats: ${e}`)
 		}
@@ -105,10 +105,11 @@ class EmbedHelper {
 	 */
 	blackJack(userId, userEcon, gameState, userStand = false) {
 		try {
-			this.builder.setTitle(`Blackjack Game`)
-			this.builder.setDescription(
-				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
-			)
+			const embed = new EmbedBuilder()
+				.setTitle(`Blackjack Game`)
+				.setDescription(
+					`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+				)
 
 			const { dealerHand, playerHand } = gameState
 			const dealerHandBlackJack = blackJack.checkForBlackJack(dealerHand)
@@ -187,7 +188,7 @@ class EmbedHelper {
 				formattedUserValue,
 			})
 
-			this.builder.setFields([
+			embed.setFields([
 				{
 					name: 'Dealer Hand',
 					value: formattedDealerValue,
@@ -201,13 +202,13 @@ class EmbedHelper {
 			])
 
 			if (result) {
-				this.builder.addFields({ name: 'Result', value: result, inline: false })
+				embed.addFields({ name: 'Result', value: result, inline: false })
 			}
 
-			this.builder.setImage('attachment://blackJack.png')
-			this.builder.setColor(0x0099ff)
+			embed.setImage('attachment://blackJack.png')
+			embed.setColor(0x0099ff)
 
-			return this.builder
+			return embed
 		} catch (e) {
 			console.log(`Error creating blackjack EH: ${e}`)
 		}
@@ -215,16 +216,17 @@ class EmbedHelper {
 
 	highOrLow(userId, userEcon, gameState) {
 		try {
-			this.builder.setTitle(`High or Low Game`)
-			this.builder.setDescription(
-				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
-			)
+			const embed = new EmbedBuilder()
+				.setTitle(`High or Low Game`)
+				.setDescription(
+					`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+				)
 
 			// Ensure we have valid numbers for display
 			const higherChance = gameState.percent?.higher || 0
 			const lowerChance = gameState.percent?.lower || 0
 
-			this.builder.setFields([
+			embed.setFields([
 				{
 					name: 'Higher Or Same',
 					value: higherChance.toString(),
@@ -238,9 +240,9 @@ class EmbedHelper {
 			])
 
 			if (highOrLower.checkUserLose(userId)) {
-				this.builder.addFields({ name: 'Result', value: 'You lost!', inline: false })
+				embed.addFields({ name: 'Result', value: 'You lost!', inline: false })
 			} else {
-				this.builder.addFields(
+				embed.addFields(
 					{
 						name: 'Result',
 						value: `You won! Current Bet Multiplier: ${gameState.reward?.toFixed(2) || '1.00'}`,
@@ -253,9 +255,9 @@ class EmbedHelper {
 					},
 				)
 			}
-			this.builder.setImage('attachment://hol.png')
-			this.builder.setColor(0x0099ff)
-			return this.builder
+			embed.setImage('attachment://hol.png')
+			embed.setColor(0x0099ff)
+			return embed
 		} catch (e) {
 			console.log(`Error creating HoL EH: ${e}`)
 		}
@@ -263,15 +265,16 @@ class EmbedHelper {
 
 	mineSweeper(userId, userEcon, gameState) {
 		try {
-			this.builder.setTitle(`Minesweeper Game`)
-			this.builder.setDescription(
-				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
-			)
+			const embed = new EmbedBuilder()
+				.setTitle(`Minesweeper Game`)
+				.setDescription(
+					`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+				)
 			let payout =
 				(gameState.mines.length / 15) *
 				gameState.reward *
 				((5 + gameState.reward) * (gameState.mode / 25))
-			this.builder.setFields([
+			embed.setFields([
 				{
 					name: 'Number of Mines',
 					value: gameState.mines.length.toString(),
@@ -288,7 +291,7 @@ class EmbedHelper {
 					inline: true,
 				},
 			])
-			return this.builder
+			return embed
 		} catch (e) {
 			console.log(`Error creating Minesweeper EH: ${e}`)
 		}
@@ -356,62 +359,63 @@ class EmbedHelper {
 
 	videoPoker(userId, userEcon, gameState) {
 		try {
-			this.builder.setTitle(`Video Poker`)
-			this.builder.setDescription(
-				`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
-			)
-			this.builder.setFields([
-				{
-					name: 'Royal Flush',
-					value: '800x',
-					inline: true,
-				},
-				{
-					name: 'Straight Flush',
-					value: '60x',
-					inline: true,
-				},
-				{
-					name: 'Four of a Kind',
-					value: '22x',
-					inline: true,
-				},
-				{
-					name: 'Full House',
-					value: '9x',
-					inline: true,
-				},
-				{
-					name: 'Flush',
-					value: '6x',
-					inline: true,
-				},
-				{
-					name: 'Straight',
-					value: '4x',
-					inline: true,
-				},
-				{
-					name: 'Three of a Kind',
-					value: '3x',
-					inline: true,
-				},
-				{
-					name: 'Two Pair',
-					value: '2x',
-					inline: true,
-				},
-				{
-					name: 'Your Current Hand Value',
-					value: `${gameState.handValue}`,
-					inline: true,
-				},
-			])
-			this.builder.setColor(0x0099ff)
+			const embed = new EmbedBuilder()
+				.setTitle(`Video Poker`)
+				.setDescription(
+					`<@${userId}>'s current balance: ${userEcon}\nCurrent bet: ${gameState.bet}`,
+				)
+				.setFields([
+					{
+						name: 'Royal Flush',
+						value: '800x',
+						inline: true,
+					},
+					{
+						name: 'Straight Flush',
+						value: '60x',
+						inline: true,
+					},
+					{
+						name: 'Four of a Kind',
+						value: '22x',
+						inline: true,
+					},
+					{
+						name: 'Full House',
+						value: '9x',
+						inline: true,
+					},
+					{
+						name: 'Flush',
+						value: '6x',
+						inline: true,
+					},
+					{
+						name: 'Straight',
+						value: '4x',
+						inline: true,
+					},
+					{
+						name: 'Three of a Kind',
+						value: '3x',
+						inline: true,
+					},
+					{
+						name: 'Two Pair',
+						value: '2x',
+						inline: true,
+					},
+					{
+						name: 'Your Current Hand Value',
+						value: `${gameState.handValue}`,
+						inline: true,
+					},
+				])
+			embed.setColor(0x0099ff)
 
-			this.builder.setImage('attachment://poker.png')
+			embed.setImage('attachment://poker.png')
 
-			return this.builder
+			return embed
 		} catch (e) {
 			console.log(`Error creating Video Poker EH: ${e}`)
 		}

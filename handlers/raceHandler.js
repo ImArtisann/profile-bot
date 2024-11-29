@@ -92,7 +92,14 @@ class RaceHandler {
 	async handleLeave(userId, interaction) {
 		try {
 			this.games.delete(userId)
-			await interaction.message.delete()
+			if (interaction instanceof ChatInputCommandInteraction) {
+				await interaction.editReply({
+					content: `You have left the game.`,
+					ephemeral: true,
+				})
+			} else {
+				await interaction.message.delete()
+			}
 		} catch (e) {
 			console.log(`Error in race handleLeave: ${e}`)
 		}
@@ -153,7 +160,7 @@ class RaceHandler {
 		try {
 			const gameState = this.games.get(userId)
 			const embed = embedHelper.race(userId, gameState.userEcon, gameState)
-			const actions = actionHelper.createRaceActions(userId, gameState.gameOver)
+			const actions = await actionHelper.createRaceActions(userId, gameState.gameOver)
 			const messageOptions = {
 				embeds: [embed],
 				components: actions,

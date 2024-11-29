@@ -205,7 +205,14 @@ class HighOrLower {
 	async handleLeave(userId, interaction) {
 		try {
 			this.games.delete(userId)
-			await interaction.message.delete()
+			if (interaction instanceof ChatInputCommandInteraction) {
+				await interaction.editReply({
+					content: `You have left the game.`,
+					ephemeral: true,
+				})
+			} else {
+				await interaction.message.delete()
+			}
 		} catch (e) {
 			console.log(`Error handling leave HoL: ${e}`)
 		}
@@ -245,7 +252,7 @@ class HighOrLower {
 				isGameOver,
 			)
 
-			const actions = actionHelper.createHoLActions(userId, isGameOver)
+			const actions = await actionHelper.createHoLActions(userId, isGameOver)
 
 			const attachment = new AttachmentBuilder(Buffer.from(gameState.image.buffer), {
 				name: 'hol.png',

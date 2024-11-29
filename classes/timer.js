@@ -1,3 +1,5 @@
+import { timerManager } from './timerManager.js'
+
 class Timer {
 	/**
 	 * Creates an instance of Timer.
@@ -88,8 +90,8 @@ class Timer {
 		this.status = 'completed'
 		this.endTime = Date.now()
 
-		if (typeof this.callback === 'function') {
-			await Promise.resolve(this.callback(this))
+		if (this.callback && typeof this.callback === 'function') {
+			await this.callback(this)
 		}
 		return this
 	}

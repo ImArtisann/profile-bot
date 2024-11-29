@@ -122,7 +122,7 @@ class MineSweeperHandler {
 			let gameState = this.games.get(userId)
 
 			const embed = await embedHelper.mineSweeper(userId, gameState.userEcon, gameState)
-			const actions = actionHelper.createMineSweeperActions(
+			const actions = await actionHelper.createMineSweeperActions(
 				userId,
 				gameState.revealed,
 				gameState.mines,
@@ -148,6 +148,16 @@ class MineSweeperHandler {
 			}
 		} catch (e) {
 			console.log(`Error in minesweeper updateMessage: ${e}`)
+		}
+	}
+
+	async handleLeave(userId, interaction) {
+		try {
+			let gameState = this.games.get(userId)
+			gameState.gameOver = true
+			await this.updateMessage(userId, interaction)
+		} catch (e) {
+			console.log(`Error in minesweeper handleLeave: ${e}`)
 		}
 	}
 }

@@ -4,6 +4,12 @@ import { highOrLower } from '../handlers/holHandler.js'
 import { mineSweeper } from '../handlers/mineSweeperHandler.js'
 import { roomsActions } from '../actions/roomsActions.js'
 import { raceHandler } from '../handlers/raceHandler.js'
+import {
+	ActionRowBuilder,
+	ModalBuilder,
+	TextInputBuilder,
+	TextInputStyle,
+} from 'discord.js'
 
 class ButtonRouter {
 	constructor() {
@@ -35,15 +41,17 @@ class ButtonRouter {
 		} else {
 			if (type === 'room') {
 				const roomButton = button.split(':')[2]
-				const roomMember = await roomsActions.getRoomMembers(
-					interaction.guild.id,
-					roomButton,
-				)
-				if (!roomMember.includes(interaction.user.id)) {
-					return interaction.reply({
-						content: 'You are not a member of the room',
-						ephemeral: true,
-					})
+				if (buttonName !== 'deposit') {
+					const roomMember = await roomsActions.getRoomMembers(
+						interaction.guild,
+						roomButton,
+					)
+					if (!roomMember.includes(interaction.user.id)) {
+						return interaction.reply({
+							content: 'You are not a member of the room',
+							ephemeral: true,
+						})
+					}
 				}
 			}
 		}
@@ -57,6 +65,57 @@ class ButtonRouter {
 }
 
 export const buttonRouter = new ButtonRouter()
+
+//Room Buttons
+buttonRouter.register('room', 'invite', async (interaction, userId) => {
+	try {
+		await interaction.deferUpdate()
+		const users = interaction.users.map((option) => option.id)
+		for (let i = 0; i < users.length; i++) {
+			await roomsActions.roomInvite(interaction.guild, interaction.channel.id, users[i])
+		}
+		await interaction.followUp({
+			content: 'You have invited the users to the room',
+			ephemeral: true,
+		})
+	} catch (e) {
+		console.error(e)
+	}
+})
+
+buttonRouter.register('room', 'kick', async (interaction, userId) => {
+	try {
+		await interaction.deferUpdate()
+		const users = interaction.values.map((option) => option)
+		for (let i = 0; i < users.length; i++) {
+			await roomsActions.roomKick(interaction.guild, interaction.channel.id, users[i])
+		}
+		await interaction.followUp({
+			content: 'You have kicked the user from the room',
+			ephemeral: true,
+		})
+	} catch (e) {
+		console.error(e)
+	}
+})
+
+buttonRouter.register('room', 'deposit', async (interaction, userId) => {
+	try {
+		let depositModal = new ModalBuilder()
+			.setCustomId(`depositModal:${interaction.channel.id}`)
+			.setTitle('Deposit')
+		let depositInput = new TextInputBuilder()
+			.setCustomId(`depositInput`)
+			.setLabel('Deposit amount')
+			.setStyle(TextInputStyle.Short)
+			.setRequired(true)
+		const firstActionRow = new ActionRowBuilder().addComponents(depositInput)
+		depositModal.addComponents(firstActionRow)
+		await interaction.showModal(depositModal)
+	} catch (e) {
+		console.error(e)
+	}
+})
 
 //Blackjack Buttons
 buttonRouter.register('bj', 'hit', async (interaction, userId) => {

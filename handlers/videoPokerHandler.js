@@ -151,7 +151,7 @@ class VideoPokerHandler {
 
 			const embed = await embedHelper.videoPoker(userId, gameState.userEcon, gameState)
 
-			const actions = actionHelper.createVideoPokerActions(
+			const actions = await actionHelper.createVideoPokerActions(
 				userId,
 				gameState.kept,
 				gameState.gameOver,

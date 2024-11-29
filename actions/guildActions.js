@@ -390,7 +390,10 @@ class GuildClass {
 					})
 				}
 			}
-			return leaderboard.sort((a, b) => b[type] - a[type]).slice(0, 10)
+			return leaderboard
+				.sort((a, b) => a.amount - b.amount)
+				.slice(0, 10)
+				.reverse()
 		} catch (e) {
 			console.log(`Error getting server leaderboard: ${e}`)
 		}

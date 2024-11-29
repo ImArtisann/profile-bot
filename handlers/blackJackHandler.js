@@ -349,7 +349,14 @@ class BlackJackHandler {
 	async handleLeave(userId, interaction) {
 		try {
 			this.games.delete(userId)
-			await interaction.message.delete()
+			if (interaction instanceof ChatInputCommandInteraction) {
+				await interaction.editReply({
+					content: `You have left the game.`,
+					ephemeral: true,
+				})
+			} else {
+				await interaction.message.delete()
+			}
 		} catch (e) {
 			console.log(`Error handling leave: ${e}`)
 		}
@@ -427,7 +434,7 @@ class BlackJackHandler {
 				gameState,
 				isGameOver,
 			)
-			const actions = actionHelper.createBlackJackActions(
+			const actions = await actionHelper.createBlackJackActions(
 				userId,
 				isGameOver,
 				gameState.playerHand.length === 2,
