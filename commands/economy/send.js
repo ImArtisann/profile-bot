@@ -1,20 +1,23 @@
-import { AttachmentBuilder, SlashCommandBuilder } from 'discord.js'
-import path from 'node:path'
-import { dirname } from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
+import { SlashCommandBuilder } from 'discord.js'
 import { userActions } from '../../actions/userActions.js'
 import { errorHandler } from '../../handlers/errorHandler.js'
 import { commandRouter } from '../../routers/commandRouter.js'
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('profile')
-		.setDescription('Replies with profile!')
+		.setName('send')
+		.setDescription('Send a user money')
 		.addUserOption((option) =>
 			option
 				.setName('user')
-				.setDescription('The user whose profile you want to see')
-				.setRequired(false),
+				.setDescription('The user you want to send money to')
+				.setRequired(true),
+		)
+		.addIntegerOption((option) =>
+			option
+				.setName('amount')
+				.setDescription('The amount of money you want to send')
+				.setRequired(true),
 		),
 	async execute(interaction) {
 		await commandRouter.handle(interaction)
