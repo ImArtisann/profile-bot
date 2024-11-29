@@ -468,6 +468,7 @@ class UserClass {
 			return data.mainQuest
 		} catch (e) {
 			console.log(`Error while getting user quest: ${e}`)
+			return false
 		}
 	}
 

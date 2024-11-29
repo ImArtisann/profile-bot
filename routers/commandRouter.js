@@ -128,7 +128,7 @@ commandRouter.register(
 		let embed
 		const userId = interaction.options.getUser('user')?.id || interaction.user.id
 		const quest = await userActions.getUserQuest(guild.id, userId)
-		if (quest) {
+		if (quest && Object.keys(quest).length > 0) {
 			embed = await embedHelper.makeQuest(quest, userId)
 			await interaction.editReply({ embeds: [embed] })
 		} else {
@@ -139,7 +139,6 @@ commandRouter.register(
 		}
 	}),
 )
-
 commandRouter.register(
 	'remind',
 	errorHandler('Remind Command')(async (interaction, guild, user) => {
@@ -981,14 +980,12 @@ commandRouter.register(
 	errorHandler('Config.tracked Command')(async (interaction, guild, user) => {
 		await interaction.deferReply({ ephemeral: true })
 
-		await userActions.updateUserBadges(
+		await guildActions.addTrackedChannel(
 			guild.id,
-			String(interaction.options.getUser('user').id),
-			interaction.options.getString('badge'),
-			interaction.options.getBoolean('add'),
+			interaction.options.getChannel('channel').id,
 		)
-		interaction.editReply({
-			content: `The users badges has been updated`,
+		await interaction.editReply({
+			content: `The channel has been added to the tracked channels`,
 			ephemeral: true,
 		})
 	}),
@@ -999,14 +996,9 @@ commandRouter.register(
 	errorHandler('Config.admin Command')(async (interaction, guild, user) => {
 		await interaction.deferReply({ ephemeral: true })
 
-		await userActions.updateUserBadges(
-			guild.id,
-			String(interaction.options.getUser('user').id),
-			interaction.options.getString('badge'),
-			interaction.options.getBoolean('add'),
-		)
-		interaction.editReply({
-			content: `The users badges has been updated`,
+		await guildActions.addAdminRole(guild.id, interaction.options.getRole('role').id)
+		await interaction.editReply({
+			content: `The role has been added to the admin roles`,
 			ephemeral: true,
 		})
 	}),

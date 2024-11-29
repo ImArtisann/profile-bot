@@ -361,6 +361,23 @@ class GuildClass {
 	}
 
 	/**
+	 * Adds a new admin role ID to the list of admin roles for the specified guild.
+	 * @param {string} guildId - The ID of the guild.
+	 * @param {string} roleId - The ID of the role to add to the admin roles list.
+	 * @returns {Promise<void>} - A Promise that resolves when the role has been added.
+	 */
+	addAdminRole = async (guildId, roleId) => {
+		try {
+			let data = JSON.parse(await this.client.get(`${guildId}:config`))
+			data.adminRolesId.push(roleId)
+			data.adminRolesId.filter((role) => role !== '')
+			await this.client.set(`${guildId}:config`, JSON.stringify(data))
+		} catch (e) {
+			console.log(`Error adding an admin role: ${e}`)
+		}
+	}
+
+	/**
 	 * Retrieves the server leaderboard for the specified guild.
 	 * @param {string} guildId - The ID of the guild.
 	 * @param {string} [type='econ'] - The type of leaderboard to retrieve, defaults to 'econ'.

@@ -97,7 +97,7 @@ class ActionHelper {
 					new UserSelectMenuBuilder()
 						.setCustomId(`Room:Invite:${roomId}`)
 						.setPlaceholder('Select a member')
-						.setMaxValues(guild.memberCount),
+						.setMaxValues(25),
 				]),
 				this.createActionRow([
 					new StringSelectMenuBuilder()
@@ -109,7 +109,7 @@ class ActionHelper {
 								value: userId,
 							})),
 						)
-						.setMaxValues(room.members.length),
+						.setMaxValues(room.members.length || 1),
 				]),
 			]
 		}, 'Error creating room actions')
