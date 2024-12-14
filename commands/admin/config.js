@@ -170,6 +170,6 @@ export default {
 				),
 		),
 	async execute(interaction) {
-		await commandRouter.handle(interaction)
+		await commandRouter.handle(interaction, true)
 	},
 }

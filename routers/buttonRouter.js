@@ -10,6 +10,8 @@ import {
 	TextInputBuilder,
 	TextInputStyle,
 } from 'discord.js'
+import { embedHelper } from '../classes/embedHelper.js'
+import { actionHelper } from '../classes/actionsHelper.js'
 
 class ButtonRouter {
 	constructor() {
@@ -41,7 +43,7 @@ class ButtonRouter {
 		} else {
 			if (type === 'room') {
 				const roomButton = button.split(':')[2]
-				if (buttonName !== 'deposit') {
+				if (buttonName === 'deposit') {
 					const roomMember = await roomsActions.getRoomMembers(
 						interaction.guild,
 						roomButton,
@@ -49,6 +51,14 @@ class ButtonRouter {
 					if (!roomMember.includes(interaction.user.id)) {
 						return interaction.reply({
 							content: 'You are not a member of the room',
+							ephemeral: true,
+						})
+					}
+				} else {
+					const roomOwner = await roomsActions.getRoomOwner(interaction.guild, roomButton)
+					if (roomOwner !== interaction.user.id) {
+						return interaction.reply({
+							content: 'You are not the owner of the room',
 							ephemeral: true,
 						})
 					}
@@ -70,13 +80,19 @@ export const buttonRouter = new ButtonRouter()
 buttonRouter.register('room', 'invite', async (interaction, userId) => {
 	try {
 		await interaction.deferUpdate()
-		const users = interaction.users.map((option) => option.id)
+		const users = interaction.users.map((option) => option)
 		for (let i = 0; i < users.length; i++) {
 			await roomsActions.roomInvite(interaction.guild, interaction.channel.id, users[i])
 		}
-		await interaction.followUp({
-			content: 'You have invited the users to the room',
-			ephemeral: true,
+		await interaction.message.delete()
+		const embed = await embedHelper.roomStats(interaction.guild, interaction.channel.id)
+		const actions = await actionHelper.createRoomActions(
+			interaction.guild,
+			interaction.channel.id,
+		)
+		await interaction.channel.send({
+			embeds: [embed],
+			components: actions,
 		})
 	} catch (e) {
 		console.error(e)
@@ -88,11 +104,21 @@ buttonRouter.register('room', 'kick', async (interaction, userId) => {
 		await interaction.deferUpdate()
 		const users = interaction.values.map((option) => option)
 		for (let i = 0; i < users.length; i++) {
-			await roomsActions.roomKick(interaction.guild, interaction.channel.id, users[i])
+			await roomsActions.roomKick(
+				interaction.guild,
+				interaction.channel.id,
+				interaction.guild.members.cache.get(users[i]),
+			)
 		}
-		await interaction.followUp({
-			content: 'You have kicked the user from the room',
-			ephemeral: true,
+		await interaction.message.delete()
+		const embed = await embedHelper.roomStats(interaction.guild, interaction.channel.id)
+		const actions = await actionHelper.createRoomActions(
+			interaction.guild,
+			interaction.channel.id,
+		)
+		await interaction.channel.send({
+			embeds: [embed],
+			components: actions,
 		})
 	} catch (e) {
 		console.error(e)

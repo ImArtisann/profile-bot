@@ -6,11 +6,11 @@ import { errorHandler } from '../handlers/errorHandler.js'
 export const name = Events.MessageCreate
 export const once = false
 
-export const execute = errorHandler('Event Message Create')(async function(client) {
+export const execute = errorHandler('Event Message Create')(async function (client) {
 	// Ignore messages from bots
-	if (client.author.bot) return
+	if (client.author.bot || client.system) return
 
-	const guild = client.guildId
+	const guild = client.guild.id
 	const user = client.author.id
 	const serverData = await guildActions.getServerRate(guild)
 	const server = serverData[0]

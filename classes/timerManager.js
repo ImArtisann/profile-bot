@@ -75,6 +75,7 @@ class TimerManager {
 	 * @param {Function} [config.callback] - Optional callback function to be executed when the timer completes
 	 * @param {string} [config.type='countdown'] - Type of timer (default is 'countdown')
 	 * @param {Object} [config.reminderData] - Optional data for reminder timers
+	 * @param {number} [config.remainingTime] - the remaining time for the timer
 	 * @returns {Promise<Timer>} The newly created timer instance
 	 */
 	async createTimer(guildId, config) {
@@ -91,6 +92,7 @@ class TimerManager {
 			config.userId,
 			config?.callback,
 			config?.type,
+			config?.remainingTime,
 		)
 
 		const timerKey = `${guildId}:${timer.id}`
@@ -209,7 +211,7 @@ class TimerManager {
 				let remainingTime = timerState.remainingTime
 				if (timerState.startTime && timerState.status === 'running') {
 					const elapsedTime = (Date.now() - timerState.startTime) / 60000
-					remainingTime = Math.max(0, timerState.duration - elapsedTime)
+					remainingTime = Math.max(0, timerState.remainingTime - elapsedTime)
 				}
 
 				// Skip and delete if timer has expired
@@ -223,8 +225,9 @@ class TimerManager {
 				let config = {
 					name: timerState.name,
 					userId: timerState.userId,
-					duration: remainingTime,
+					duration: timerState.duration,
 					type: timerState.type,
+					remainingTime: remainingTime,
 				}
 
 				if (timerState.callbackType === 'roomRentCallback') {

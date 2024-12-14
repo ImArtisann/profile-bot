@@ -10,11 +10,19 @@ class Timer {
 	 * @param {string} userId - The ID of the user associated with the timer.
 	 * @param {Function|null} [callback=null] - Optional callback function to be called when the timer completes.
 	 * @param {string} [type='countdown'] - The type of the timer, default is 'countdown'.
+	 * @param {number} [remainingTime] - The reminder data for the timer.
 	 */
-	constructor(duration, name, userId, callback = null, type = 'countdown') {
+	constructor(
+		duration,
+		name,
+		userId,
+		callback = null,
+		type = 'countdown',
+		remainingTime,
+	) {
 		this.id = crypto.randomUUID()
 		this.duration = duration
-		this.remainingTime = duration
+		this.remainingTime = remainingTime ?? duration
 		this.name = name
 		this.userId = userId
 		this.status = 'initialized'

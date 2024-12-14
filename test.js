@@ -2,9 +2,9 @@ import 'dotenv/config'
 import fs from 'fs'
 import { videoPoker } from './handlers/videoPokerHandler.js'
 
-async function test() {
-	let image = await videoPoker.startGame('0', '100', '100')
-	fs.writeFileSync('test.png', image.buffer)
+async function test(startTime) {
+	const elapsedtime = Date.now() - startTime
+	console.log(`Elapsed time: ${elapsedtime}`)
 }
 
-await test()
+await test(1733181187911)

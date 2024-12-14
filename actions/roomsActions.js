@@ -172,39 +172,32 @@ class RoomsClass {
 	 * Invites a user to a room and grants them permissions.
 	 * @param {Object} guild - The Discord guild object.
 	 * @param {string} roomId - The ID of the room to invite the user to.
-	 * @param {string} userId - The  user to invite to the room.
+	 * @param {Object} user - The  user to invite to the room.
 	 * @returns {Promise<boolean>} - Returns true if the user was successfully invited, false otherwise.
 	 */
-	async roomInvite(guild, roomId, userId) {
+	async roomInvite(guild, roomId, user) {
 		try {
 			let room = JSON.parse(await this.client.hget(`${guild.id}:privateChannels`, roomId))
-			if (room.owner === userId) {
+			if (room.owner === user.id) {
 				return false
 			}
-			if (room.members.includes(userId)) {
+			if (room.members.includes(user.id)) {
 				return false
 			} else {
-				room.members.push(userId)
+				room.members.push(user.id)
 				await guild.channels.fetch(roomId).then((channel) =>
-					channel.edit({
-						permissionOverwrites: [
-							{
-								id: userId,
-								allow: [
-									PermissionsBitField.Flags.ViewChannel,
-									PermissionsBitField.Flags.Connect,
-									PermissionsBitField.Flags.Speak,
-									PermissionsBitField.Flags.Stream,
-									PermissionsBitField.Flags.SendMessages,
-									PermissionsBitField.Flags.UseApplicationCommands,
-									PermissionsBitField.Flags.UseExternalEmojis,
-									PermissionsBitField.Flags.EmbedLinks,
-									PermissionsBitField.Flags.AttachFiles,
-									PermissionsBitField.Flags.AddReactions,
-									PermissionsBitField.Flags.ReadMessageHistory,
-								],
-							},
-						],
+					channel.permissionOverwrites.create(user, {
+						ViewChannel: true,
+						Connect: true,
+						Speak: true,
+						Stream: true,
+						SendMessages: true,
+						UseApplicationCommands: true,
+						UseExternalEmojis: true,
+						EmbedLinks: true,
+						AttachFiles: true,
+						AddReactions: true,
+						ReadMessageHistory: true,
 					}),
 				)
 				await this.client.hset(
@@ -223,36 +216,29 @@ class RoomsClass {
 	 * Removes a user from a room and revokes their permissions.
 	 * @param {Object} guild - The Discord guild object.
 	 * @param {string} roomId - The ID of the room to kick the user from.
-	 * @param {string} userId - The ID of the user to kick from the room.
+	 * @param {Object} user - The ID of the user to kick from the room.
 	 * @returns {Promise<boolean>} - Returns true if the user was successfully kicked, false otherwise.
 	 */
-	async roomKick(guild, roomId, userId) {
+	async roomKick(guild, roomId, user) {
 		try {
 			let room = JSON.parse(await this.client.hget(`${guild.id}:privateChannels`, roomId))
-			if (room.owner === userId) {
+			if (room.owner === user.id) {
 				return false
 			}
-			if (room.members.includes(userId)) {
-				room.members = room.members.filter((member) => member !== userId)
+			if (room.members.includes(user.id)) {
+				room.members = room.members.filter((member) => member !== user.id)
 				await guild.channels.fetch(roomId).then((channel) =>
-					channel.edit({
-						permissionOverwrites: [
-							{
-								id: userId,
-								deny: [
-									PermissionsBitField.Flags.Connect,
-									PermissionsBitField.Flags.Speak,
-									PermissionsBitField.Flags.Stream,
-									PermissionsBitField.Flags.SendMessages,
-									PermissionsBitField.Flags.UseApplicationCommands,
-									PermissionsBitField.Flags.UseExternalEmojis,
-									PermissionsBitField.Flags.EmbedLinks,
-									PermissionsBitField.Flags.AttachFiles,
-									PermissionsBitField.Flags.AddReactions,
-									PermissionsBitField.Flags.ReadMessageHistory,
-								],
-							},
-						],
+					channel.permissionOverwrites.create(user, {
+						Connect: false,
+						Speak: false,
+						Stream: false,
+						SendMessages: false,
+						UseApplicationCommands: false,
+						UseExternalEmojis: false,
+						EmbedLinks: false,
+						AttachFiles: false,
+						AddReactions: false,
+						ReadMessageHistory: false,
 					}),
 				)
 				await this.client.hset(
@@ -262,7 +248,7 @@ class RoomsClass {
 				)
 				return true
 			} else {
-				console.log(`User ${userId} is not in room ${roomId}`)
+				console.log(`User ${user.id} is not in room ${roomId}`)
 				return false
 			}
 		} catch (e) {
@@ -315,6 +301,23 @@ class RoomsClass {
 			return room.members
 		} catch (e) {
 			console.log('Error getting room members:', e)
+		}
+	}
+
+	/**
+	 * Retrieves the owner of a private room in the Discord guild.
+	 * @param {Object} guild - The Discord guild object.
+	 * @param {string} roomId - The ID of the private room to retrieve the owner for.
+	 * @returns {Promise<Object>} - The owner of the private room.
+	 */
+	async getRoomOwner(guild, roomId) {
+		try {
+			const room = JSON.parse(
+				await this.client.hget(`${guild.id}:privateChannels`, roomId),
+			)
+			return room.owner
+		} catch (e) {
+			console.log('Error getting room owner:', e)
 		}
 	}
 }

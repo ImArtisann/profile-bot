@@ -34,6 +34,7 @@ async function handleBlackJackGame(data) {
 async function handleProfileImage(data) {
 	try {
 		const imageData = await userActions.createProfilePic(data)
+		console.log(imageData)
 		const buffer = Array.from(imageData.buffer)
 		return {
 			type: data.type,

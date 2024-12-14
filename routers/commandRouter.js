@@ -14,6 +14,7 @@ import { AttachmentBuilder } from 'discord.js'
 import { highOrLower } from '../handlers/holHandler.js'
 import { mineSweeper } from '../handlers/mineSweeperHandler.js'
 import { raceHandler } from '../handlers/raceHandler.js'
+import 'dotenv/config'
 
 class CommandRouter {
 	constructor() {
@@ -87,12 +88,20 @@ commandRouter.register(
 		user = targetUser ? targetUser : user
 		const targetMember = interaction.options.getMember('user')
 		const member = targetMember ? targetMember : interaction.member
+		let serverBadges = await guildActions.getServerBadges(guild.id)
+		const testGuild = await interaction.client.guilds.fetch(process.env.TEST_GUILD_ID)
+		const imageChannel = await testGuild.channels.fetch(process.env.IMAGE_HOSTING_CHANNEL)
+		for (const [key, value] of Object.entries(serverBadges)) {
+			serverBadges[key] = await imageChannel.messages.fetch(value).then((message) => {
+				return message.attachments.first().url
+			})
+		}
 
 		const image = await userActions.callWorker({
 			name: member.nickname || member.user.displayName,
 			avatarUrl: user.avatarURL({ extension: 'png', size: 512 }),
 			profileData: await userActions.getUserProfile(guild.id, user.id),
-			serverBadges: await guildActions.getServerBadges(guild.id),
+			serverBadges: serverBadges,
 			type: 'profile',
 		})
 		const attachment = new AttachmentBuilder(Buffer.from(image.image.buffer), {
@@ -786,7 +795,7 @@ commandRouter.register(
 commandRouter.register(
 	'room.status',
 	errorHandler('Room.Status Command')(async (interaction, guild, user) => {
-		await interaction.deferReply({ ephemeral: true })
+		await interaction.deferReply({})
 
 		const channel = interaction.channel
 		if (!(await roomsActions.getServerRooms(guild.id)).includes(channel.id)) {
@@ -910,7 +919,7 @@ commandRouter.register(
 		await userActions.updateUserBadges(
 			guild.id,
 			String(interaction.options.getUser('user').id),
-			interaction.options.getString('name'),
+			interaction.options.getString('badge'),
 			interaction.options.getBoolean('add'),
 		)
 		interaction.editReply({
